@@ -1,9 +1,7 @@
-/* DO NOT CHANGE */
 @import "tailwindcss";
 @import "tw-animate-css";
 @custom-variant dark (&:is(.dark *));
 
-/* DO NOT CHANGE */
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -42,85 +40,152 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* CHANGE VALUES FOR THEME */
+/*
+ * Antren — "Opportunities without limits"
+ *
+ * Espresso/cocoa depth, cream surfaces, emerald accents. Light is the default
+ * (no class). `dark`, `theme-espresso` and `theme-custom` are applied to
+ * <html> by src/lib/theme.ts based on the signed-in profile.
+ */
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --background: #faf8f5;
+  --foreground: #241b15;
+  --card: #ffffff;
+  --card-foreground: #241b15;
+  --popover: #ffffff;
+  --popover-foreground: #241b15;
+  --primary: #10b981;
+  --primary-foreground: #03281b;
+  --secondary: #f3efea;
+  --secondary-foreground: #241b15;
+  --muted: #f1ece5;
+  --muted-foreground: #6e6258;
+  --accent: #f3efea;
+  --accent-foreground: #241b15;
+  --destructive: #c0523f;
+  --border: #e7e0d7;
+  --input: #e2dad0;
+  --ring: #10b981;
+  --chart-1: #10b981;
+  --chart-2: #0f766e;
+  --chart-3: #b45309;
+  --chart-4: #7c5cd6;
+  --chart-5: #d6456b;
+  --sidebar: #f6f1ea;
+  --sidebar-foreground: #241b15;
+  --sidebar-primary: #10b981;
+  --sidebar-primary-foreground: #03281b;
+  --sidebar-accent: #f3efea;
+  --sidebar-accent-foreground: #241b15;
+  --sidebar-border: #e7e0d7;
+  --sidebar-ring: #10b981;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: #1c1614;
+  --foreground: #faf6f1;
+  --card: #221c18;
+  --card-foreground: #faf6f1;
+  --popover: #221c18;
+  --popover-foreground: #faf6f1;
+  --primary: #34d399;
+  --primary-foreground: #03281b;
+  --secondary: #2d221e;
+  --secondary-foreground: #faf6f1;
+  --muted: #2a221d;
+  --muted-foreground: #a89c90;
+  --accent: #2d221e;
+  --accent-foreground: #faf6f1;
+  --destructive: #e0654f;
+  --border: rgba(250, 246, 241, 0.12);
+  --input: rgba(250, 246, 241, 0.16);
+  --ring: #34d399;
+  --chart-1: #34d399;
+  --chart-2: #2dd4bf;
+  --chart-3: #fbbf24;
+  --chart-4: #a78bfa;
+  --chart-5: #fb7185;
+  --sidebar: #201a17;
+  --sidebar-foreground: #faf6f1;
+  --sidebar-primary: #34d399;
+  --sidebar-primary-foreground: #03281b;
+  --sidebar-accent: #2d221e;
+  --sidebar-accent-foreground: #faf6f1;
+  --sidebar-border: rgba(250, 246, 241, 0.1);
+  --sidebar-ring: #34d399;
+}
+
+/* Espresso-Fresh — cocoa night with emerald actions */
+.theme-espresso {
+  --background: #1c1614;
+  --foreground: #faf6f1;
+  --card: #2d221e;
+  --card-foreground: #faf6f1;
+  --popover: #2d221e;
+  --popover-foreground: #faf6f1;
+  --primary: #10b981;
+  --primary-foreground: #03281b;
+  --secondary: #3a2e27;
+  --secondary-foreground: #faf6f1;
+  --muted: #332821;
+  --muted-foreground: #b3a596;
+  --accent: #3a2e27;
+  --accent-foreground: #faf6f1;
+  --destructive: #e0654f;
+  --border: rgba(250, 246, 241, 0.12);
+  --input: rgba(250, 246, 241, 0.18);
+  --ring: #10b981;
+  --chart-1: #10b981;
+  --chart-2: #34d399;
+  --chart-3: #fbbf24;
+  --chart-4: #a78bfa;
+  --chart-5: #fb7185;
+  --sidebar: #241c17;
+  --sidebar-foreground: #faf6f1;
+  --sidebar-primary: #10b981;
+  --sidebar-primary-foreground: #03281b;
+  --sidebar-accent: #3a2e27;
+  --sidebar-accent-foreground: #faf6f1;
+  --sidebar-border: rgba(250, 246, 241, 0.1);
+  --sidebar-ring: #10b981;
+}
+
+/* Custom Accent — user-chosen primary color on cream surfaces.
+   --accent-color / --accent-color-fg are set inline by src/lib/theme.ts. */
+.theme-custom {
+  --primary: var(--accent-color, #10b981);
+  --primary-foreground: var(--accent-color-fg, #03281b);
+  --ring: var(--accent-color, #10b981);
+  --chart-1: var(--accent-color, #10b981);
+  --sidebar-primary: var(--accent-color, #10b981);
+  --sidebar-primary-foreground: var(--accent-color-fg, #03281b);
+  --sidebar-ring: var(--accent-color, #10b981);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
+  }
   body {
     @apply bg-background text-foreground;
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--primary) 24%, transparent);
   }
   button:not([disabled]),
   [role="button"]:not([disabled]) {
     cursor: pointer;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
   }
 }

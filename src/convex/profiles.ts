@@ -72,7 +72,7 @@ export const upsert = mutation({
 
     // Promote the very first user to admin so the curation dashboard is usable
     // in this prototype. In production this would be a managed role change.
-    const profileCount = await ctx.db.query("profiles").count();
+    const profileCount = (await ctx.db.query("profiles").collect()).length;
     if (profileCount === 0) {
       await ctx.db.patch(userId, { role: "admin", name: args.name });
     } else if (existing) {

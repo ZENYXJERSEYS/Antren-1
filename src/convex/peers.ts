@@ -32,23 +32,28 @@ export const list = query({
 
     const stateFor = (userId: string) => {
       const sent = myConnections.find((c) => c.toUserId === userId);
-      if (sent) return sent.status === "connected" ? "connected" : "pending";
+      if (sent) {
+        return { state: sent.status === "connected" ? ("connected" as const) : ("pending" as const), connectionId: sent._id };
+      }
       const recv = incoming.find((c) => c.fromUserId === userId);
-      if (recv) return recv.status === "connected" ? "connected" : "incoming";
-      return "none";
+      if (recv) {
+        return { state: recv.status === "connected" ? ("connected" as const) : ("incoming" as const), connectionId: recv._id };
+      }
+      return { state: "none" as const, connectionId: null };
     };
 
     const items: {
       profile: (typeof profiles)[number];
       user: NonNullable<Awaited<ReturnType<typeof ctx.db.get>>>;
       connection: "none" | "pending" | "connected" | "incoming";
+      connectionId: ReturnType<typeof stateFor>["connectionId"];
       matchPct: number;
     }[] = [];
 
     for (const p of profiles) {
       if (p.userId === viewerId) continue;
       if (!p.onboardingComplete) continue;
-      if (!p.publicProfile && stateFor(p.userId.toString()) === "none") continue;
+      if (!p.publicProfile && stateFor(p.userId.toString()).state === "none") continue;
       if (args.grade && p.grade !== args.grade) continue;
       if (args.country && p.country !== args.country) continue;
       if (args.interest && !p.interests.includes(args.interest)) continue;
@@ -62,10 +67,12 @@ export const list = query({
       if (!user) continue;
       const peerInterests = p.interests;
       const overlap = args.subField ? p.subFields.filter((s) => s === args.subField).length : 0;
+      const state = stateFor(p.userId.toString());
       items.push({
         profile: p,
         user,
-        connection: stateFor(p.userId.toString()),
+        connection: state.state,
+        connectionId: state.connectionId,
         matchPct: Math.min(99, 40 + (peerInterests.length > 0 ? peerInterests.length * 4 : 0) + overlap * 5 + (p.country === "Global" ? 5 : 0)),
       });
     }

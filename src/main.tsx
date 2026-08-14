@@ -6,13 +6,21 @@ import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { ConvexReactClient } from "convex/react";
 import React, { StrictMode, useEffect, lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, Route, Routes, useLocation } from "react-router";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router";
 import "./index.css";
 
 // Lazy load route components for better code splitting
 const Landing = lazy(() => import("./pages/Landing.tsx"));
 const AuthPage = lazy(() => import("./pages/Auth.tsx"));
-const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
+const Onboarding = lazy(() => import("./pages/Onboarding.tsx"));
+const AppShell = lazy(() => import("./components/AppShell.tsx"));
+const ForYou = lazy(() => import("./pages/app/ForYou.tsx"));
+const Explore = lazy(() => import("./pages/app/Explore.tsx"));
+const Saved = lazy(() => import("./pages/app/Saved.tsx"));
+const Pipeline = lazy(() => import("./pages/app/Pipeline.tsx"));
+const Peers = lazy(() => import("./pages/app/Peers.tsx"));
+const Settings = lazy(() => import("./pages/app/Settings.tsx"));
+const OpportunityDetail = lazy(() => import("./pages/app/OpportunityDetail.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 // Simple loading fallback for route transitions
@@ -122,16 +130,37 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/" element={<Landing />} />
               <Route
                 path="/auth"
-                element={<AuthPage redirectAfterAuth="/dashboard" />}
+                element={<AuthPage redirectAfterAuth="/app/for-you" />}
               />
               <Route
-                path="/dashboard"
+                path="/onboarding"
                 element={
                   <RequireAuth>
-                    <Dashboard />
+                    <Onboarding />
                   </RequireAuth>
                 }
               />
+              <Route
+                path="/dashboard"
+                element={<Navigate to="/app/for-you" replace />}
+              />
+              <Route
+                path="/app"
+                element={
+                  <RequireAuth>
+                    <AppShell />
+                  </RequireAuth>
+                }
+              >
+                <Route index element={<Navigate to="/app/for-you" replace />} />
+                <Route path="for-you" element={<ForYou />} />
+                <Route path="explore" element={<Explore />} />
+                <Route path="saved" element={<Saved />} />
+                <Route path="pipeline" element={<Pipeline />} />
+                <Route path="peers" element={<Peers />} />
+                <Route path="settings" element={<Settings />} />
+                <Route path="opportunity/:id" element={<OpportunityDetail />} />
+              </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
