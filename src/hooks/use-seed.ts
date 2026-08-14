@@ -10,7 +10,7 @@ let seeding = false;
  */
 export function useSeedData() {
   const stats = useQuery(api.opportunities.stats);
-  const seed = useMutation(api.opportunities.seedOpportunities);
+  const seed = useMutation(api.seed.seedOpportunities);
   const started = useRef(false);
 
   useEffect(() => {
