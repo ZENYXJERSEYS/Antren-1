@@ -14,7 +14,7 @@ export function useSeedData() {
   const started = useRef(false);
 
   useEffect(() => {
-    if (!stats || stats.opportunities > 0 || seeding || started.current) return;
+    if (!stats || seeding || started.current) return;
     started.current = true;
     seeding = true;
     void seed().finally(() => {
