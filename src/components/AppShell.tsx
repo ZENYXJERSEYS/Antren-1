@@ -4,7 +4,6 @@ import {
   Bookmark,
   ChevronDown,
   Compass,
-  Database,
   KanbanSquare,
   LogOut,
   Menu,
@@ -38,7 +37,6 @@ const NAV = [
   { to: "/app/saved", label: "Saved", icon: Bookmark },
   { to: "/app/pipeline", label: "Pipeline", icon: KanbanSquare },
   { to: "/app/peers", label: "Peers", icon: Users },
-  { to: "/app/import", label: "Import", icon: Database },
 ];
 
 function NavItems({ onNavigate }: { onNavigate?: () => void }) {

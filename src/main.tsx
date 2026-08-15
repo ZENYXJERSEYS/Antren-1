@@ -19,7 +19,6 @@ const Explore = lazy(() => import("./pages/app/Explore.tsx"));
 const Saved = lazy(() => import("./pages/app/Saved.tsx"));
 const Pipeline = lazy(() => import("./pages/app/Pipeline.tsx"));
 const Peers = lazy(() => import("./pages/app/Peers.tsx"));
-const ImportPage = lazy(() => import("./pages/app/Import.tsx"));
 const Settings = lazy(() => import("./pages/app/Settings.tsx"));
 const OpportunityDetail = lazy(() => import("./pages/app/OpportunityDetail.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
@@ -159,7 +158,6 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="saved" element={<Saved />} />
                 <Route path="pipeline" element={<Pipeline />} />
                 <Route path="peers" element={<Peers />} />
-                <Route path="import" element={<ImportPage />} />
                 <Route path="settings" element={<Settings />} />
                 <Route path="opportunity/:id" element={<OpportunityDetail />} />
               </Route>
