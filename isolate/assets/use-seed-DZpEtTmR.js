@@ -1,0 +1,1 @@
+import{r as u}from"./react-vendor-DmakGgst.js";import{a as n,b as e,d as i}from"./index-zAnCzKz9.js";let s=!1;function c(){const t=n(e.opportunities.stats),r=i(e.seed.seedOpportunities),a=i(e.seedExtra.seedExtra),o=u.useRef(!1);u.useEffect(()=>{!t||s||o.current||(o.current=!0,s=!0,Promise.all([r(),a()]).finally(()=>{s=!1}))},[t,r,a])}export{c as u};
