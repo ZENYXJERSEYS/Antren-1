@@ -118,17 +118,23 @@ function labelFor(category: string): string {
 export const stats = query({
   args: {},
   handler: async (ctx) => {
+    // Sample the first 50k published rows instead of collecting the whole
+    // catalog — with 87k–200k records a full collect would blow the query
+    // time limit on every landing page load. Counts are marked approximate
+    // when the sample hits the cap (UI renders them with a "+").
     const [opps, profiles, users] = await Promise.all([
-      ctx.db.query("opportunities").filter((q) => q.eq(q.field("status"), "published")).collect(),
-      ctx.db.query("profiles").collect(),
-      ctx.db.query("users").collect(),
+      ctx.db.query("opportunities").withIndex("by_status", (q) => q.eq("status", "published")).take(50000),
+      ctx.db.query("profiles").take(10000),
+      ctx.db.query("users").take(10000),
     ]);
+    const approximate = opps.length >= 50000;
     return {
       opportunities: opps.length,
       verified: opps.filter((o) => o.verificationStatus === "verified" || o.verificationStatus === "recently_verified").length,
       categories: new Set(opps.map((o) => o.category)).size,
       countries: new Set(opps.map((o) => o.country)).size,
       users: profiles.length,
+      approximate,
       isSampleData: true,
     };
   },
@@ -140,7 +146,7 @@ export const featured = query({
     const opps = await ctx.db
       .query("opportunities")
       .withIndex("by_status", (q) => q.eq("status", "published"))
-      .collect();
+      .take(500);
     const now = Date.now();
     return opps
       .filter((o) => o.featured && o.deadline > now)

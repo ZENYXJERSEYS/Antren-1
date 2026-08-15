@@ -352,6 +352,8 @@ export interface CatalogOpportunityDoc {
   createdAt: number;
   updatedAt: number;
   searchText: string;
+  /** External stable ID from the source dataset, e.g. "Opportunity #40001". */
+  sourceId?: string;
 }
 
 const DAY = 86_400_000;
@@ -369,6 +371,7 @@ export function rowToOpportunity(
   if (p[0] === "ID" || !p[0] || !p[2] || !p[9]) return null;
 
   const type = p[2];
+  const sourceId = p[0];
   const location = p[4] || "Remote / Online (worldwide)";
   const remote = /remote/i.test(location);
   const title = p[9];
@@ -396,6 +399,7 @@ export function rowToOpportunity(
 
   const doc: CatalogOpportunityDoc = {
     title,
+    sourceId,
     subtitle: `${type} · Ages 13-18 · 2-4 weeks hear-back`,
     description,
     shortDescription: description.slice(0, 150),

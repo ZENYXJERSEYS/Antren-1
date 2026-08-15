@@ -93,14 +93,30 @@ export const seedExtra = mutation({
   args: {},
   handler: async (ctx) => {
     const now = Date.now();
-    const existingRows = await ctx.db.query("opportunities").take(5000);
-    const existing = new Set(existingRows.map((o) => `${o.title}::${o.provider}`));
 
+    // Dedupe against the by_sourceId index instead of scanning the first 5k
+    // rows — with an 87k–200k catalog the old scan silently missed most rows
+    // and re-inserted the template catalog on every session.
     const docs: CatalogOpportunityDoc[] = [];
-    GENERATED_ROWS.forEach((parts, i) => {
-      const doc = rowToOpportunity(parts, { now, index: i });
-      if (doc && !existing.has(`${doc.title}::${doc.provider}`)) docs.push(doc);
-    });
+    const seen = new Set<string>();
+    for (const parts of GENERATED_ROWS) {
+      const doc = rowToOpportunity(parts, { now, index: docs.length });
+      if (!doc) continue;
+      const key = doc.sourceId ?? `${doc.title}::${doc.provider}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const exists = doc.sourceId
+        ? await ctx.db
+            .query("opportunities")
+            .withIndex("by_sourceId", (q) => q.eq("sourceId", doc.sourceId!))
+            .first()
+        : await ctx.db
+            .query("opportunities")
+            .withIndex("by_provider", (q) => q.eq("provider", doc.provider))
+            .filter((q) => q.eq(q.field("title"), doc.title))
+            .first();
+      if (!exists) docs.push(doc);
+    }
 
     for (let i = 0; i < docs.length; i += 200) {
       const batch = docs.slice(i, i + 200);

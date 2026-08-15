@@ -123,6 +123,9 @@ const schema = defineSchema(
       createdAt: v.number(),
       updatedAt: v.number(),
       searchText: v.string(),
+      /** Stable external identifier from the source dataset (e.g. "Opportunity #40001").
+       *  Used as the idempotency key for bulk imports so re-imports never duplicate. */
+      sourceId: v.optional(v.string()),
     })
       .index("by_deadline", ["deadline"])
       .index("by_category", ["category", "deadline"])
@@ -130,6 +133,7 @@ const schema = defineSchema(
       .index("by_verification", ["verificationStatus"])
       .index("by_provider", ["provider"])
       .index("by_status", ["status", "deadline"])
+      .index("by_sourceId", ["sourceId"])
       .searchIndex("search_opportunities", {
         searchField: "searchText",
         filterFields: ["category", "country", "verificationStatus", "status"],

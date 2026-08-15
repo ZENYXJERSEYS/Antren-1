@@ -9,7 +9,8 @@ import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { CATALOG_COLUMNS } from "@/convex/lib/catalog";
 
-const BATCH = 200;
+const BATCH = 1000; // rows per ingest mutation call (~350KB)
+const CONCURRENCY = 3; // parallel in-flight ingest calls
 const SLICE_BYTES = 2 * 1024 * 1024; // read uploaded files in 2MB slices
 
 /** Parse lines of the 15-column table (tab-separated preferred; comma fallback). */
@@ -24,6 +25,11 @@ function splitRows(text: string): string[][] {
   return rows;
 }
 
+/** Mirrors the server-side dedupe key: source ID, else title::provider. */
+function keyFor(parts: string[]): string {
+  return parts[0] || `${parts[9]}::${parts[10]}`;
+}
+
 export default function Import() {
   const ingest = useMutation(api.ingest.ingestBatch);
   const stats = useQuery(api.opportunities.stats);
@@ -33,8 +39,9 @@ export default function Import() {
   const [pasted, setPasted] = useState("");
   const [fileName, setFileName] = useState("");
   const [progress, setProgress] = useState<{
-    done: number;
+    done: number; // rows sent to the backend
     total: number | null; // null = streaming a file (unknown row count)
+    readBytes: number;
     inserted: number;
     skipped: number;
   } | null>(null);
@@ -42,39 +49,77 @@ export default function Import() {
 
   const runImport = async (
     src: "paste" | "file",
-    rowsSupplier: () => Promise<string[][]> | string[][],
+    batches: string[][][] | AsyncGenerator<string[][]>,
+    total: number | null,
   ) => {
     if (busy) return;
     setBusy(true);
     setSource(src);
-    setProgress({ done: 0, total: null, inserted: 0, skipped: 0 });
+    setProgress({ done: 0, total, readBytes: 0, inserted: 0, skipped: 0 });
     cancelled.current = false;
+
+    const queue: string[][][] = [];
+    let producerDone = false;
+    let producerError: unknown = null;
+    const seen = new Set<string>();
     let inserted = 0;
     let skipped = 0;
-    try {
-      const rows = await rowsSupplier();
-      const total = rows.length;
-      if (total === 0) {
-        toast.info("No rows found — check that each line has the 15 columns.");
-        return;
-      }
-      setProgress({ done: 0, total, inserted: 0, skipped: 0 });
-      for (let i = 0; i < rows.length; i += BATCH) {
-        if (cancelled.current) {
-          toast.info(`Import cancelled — ${inserted.toLocaleString()} added so far.`);
-          return;
+
+    // Produce batches lazily so file uploads stream while workers consume.
+    const producer = (async () => {
+      try {
+        if (Array.isArray(batches)) {
+          for (const b of batches) queue.push(b);
+        } else {
+          for await (const b of batches) queue.push(b);
         }
-        const res = await ingest({ rows: rows.slice(i, i + BATCH) });
+      } catch (err) {
+        producerError = err;
+      } finally {
+        producerDone = true;
+      }
+    })();
+
+    const worker = async () => {
+      while (true) {
+        if (cancelled.current) return;
+        const batch = queue.shift();
+        if (!batch) {
+          if (producerDone) return;
+          await new Promise((r) => setTimeout(r, 40));
+          continue;
+        }
+        // Client-side dedupe across batches (the server dedupes against the DB).
+        const fresh = batch.filter((parts) => {
+          const k = keyFor(parts);
+          if (seen.has(k)) {
+            skipped++;
+            return false;
+          }
+          seen.add(k);
+          return true;
+        });
+        if (fresh.length === 0) continue;
+        const res = await ingest({ rows: fresh });
         inserted += res.inserted;
         skipped += res.skipped;
-        setProgress({ done: Math.min(i + BATCH, total), total, inserted, skipped });
+        setProgress((p) => (p ? { ...p, done: p.done + fresh.length, inserted, skipped } : p));
+      }
+    };
+
+    try {
+      await Promise.all([producer, ...Array.from({ length: CONCURRENCY }, () => worker())]);
+      if (producerError) throw producerError;
+      if (cancelled.current) {
+        toast.info(`Import cancelled — ${inserted.toLocaleString()} added so far.`);
+        return;
       }
       toast.success(
         `Imported ${inserted.toLocaleString()} opportunities (${skipped.toLocaleString()} duplicates skipped).`,
       );
     } catch (err) {
       console.error(err);
-      toast.error(err instanceof Error && err.message !== "cancelled" ? err.message : "Import failed");
+      toast.error(err instanceof Error ? err.message : "Import failed");
     } finally {
       setBusy(false);
       if (!cancelled.current) setSource(null);
@@ -82,29 +127,38 @@ export default function Import() {
   };
 
   const handlePaste = () => {
-    void runImport("paste", () => splitRows(pasted));
+    const rows = splitRows(pasted);
+    if (rows.length === 0) {
+      toast.info("No rows found — check that each line has the 15 columns.");
+      return;
+    }
+    const batches: string[][][] = [];
+    for (let i = 0; i < rows.length; i += BATCH) batches.push(rows.slice(i, i + BATCH));
+    void runImport("paste", batches, rows.length);
   };
 
   const handleFile = (file: File) => {
     setFileName(file.name);
-    void runImport("file", async () => {
+    const gen = (async function* (): AsyncGenerator<string[][]> {
       const decoder = new TextDecoder();
       let buffer = "";
       let offset = 0;
-      const rows: string[][] = [];
+      let pending: string[][] = [];
       while (offset < file.size) {
         const slice = await file.slice(offset, offset + SLICE_BYTES).arrayBuffer();
         buffer += decoder.decode(slice, { stream: true });
         offset += SLICE_BYTES;
         const lines = buffer.split(/\r?\n/);
         buffer = lines.pop() ?? "";
-        rows.push(...splitRows(lines.join("\n")));
-        setProgress((p) => (p ? { ...p, done: offset, total: null } : p));
+        pending.push(...splitRows(lines.join("\n")));
+        setProgress((p) => (p ? { ...p, readBytes: offset } : p));
+        while (pending.length >= BATCH) yield pending.splice(0, BATCH);
       }
       buffer += decoder.decode();
-      if (buffer.trim()) rows.push(...splitRows(buffer));
-      return rows;
-    });
+      if (buffer.trim()) pending.push(...splitRows(buffer));
+      while (pending.length > 0) yield pending.splice(0, BATCH);
+    })();
+    void runImport("file", gen, null);
   };
 
   const pct =
@@ -114,8 +168,8 @@ export default function Import() {
 
   const rowLabel = progress?.total
     ? `${progress.done.toLocaleString()} / ${progress.total.toLocaleString()} rows`
-    : progress && progress.total === null && progress.done
-      ? `${(progress.done / (1024 * 1024)).toFixed(1)} MB read`
+    : progress && progress.readBytes > 0
+      ? `${(progress.readBytes / (1024 * 1024)).toFixed(1)} MB read · ${progress.done.toLocaleString()} rows uploaded`
       : "";
 
   return (
@@ -128,7 +182,7 @@ export default function Import() {
           <h1 className="text-3xl font-semibold tracking-tight">Catalog Import</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
             {stats
-              ? `${stats.opportunities.toLocaleString()} opportunities live in the catalog`
+              ? `${stats.opportunities.toLocaleString()}${stats.approximate ? "+" : ""} opportunities live in the catalog`
               : "Loading catalog stats…"}
           </p>
         </div>
@@ -142,8 +196,9 @@ export default function Import() {
             </CardTitle>
             <CardDescription>
               Best for the full dataset — save the rows as a <code>.csv</code> / <code>.tsv</code>{" "}
-              file and upload it. Read in 2MB slices, imported in batches of 200. Handles up to
-              ~200,000 rows.
+              / <code>.txt</code> file and upload it. Streamed in 2MB slices and imported in
+              1,000-row batches with parallel workers. Handles up to ~200,000 rows in a few
+              minutes.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
@@ -171,8 +226,8 @@ export default function Import() {
               <ClipboardPaste className="size-4 text-primary" /> Paste rows
             </CardTitle>
             <CardDescription>
-              Good for smaller chunks (a few thousand rows at a time). Paste the table starting at
-              the <code>ID</code> column.
+              Good for smaller chunks (a few thousand rows). For the full dataset, save it as a
+              file and use the upload instead — pasting 87,000+ rows will slow the browser down.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
@@ -205,9 +260,9 @@ export default function Import() {
             <div className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-2 font-medium">
                 <Loader2 className="size-4 animate-spin text-primary" />
-                Importing{source === "file" && fileName ? ` ${fileName}` : ""}…
+                Importing{source === "file" && fileName ? ` ${fileName}` : ""}…{" "}
+                <span className="font-normal text-muted-foreground">{rowLabel}</span>
               </span>
-              <span className="text-muted-foreground">{rowLabel}</span>
             </div>
             <div className="mt-3 flex items-center gap-4">
               <Progress value={progress.total ? pct : undefined} className="flex-1" />
@@ -240,9 +295,10 @@ export default function Import() {
         <h2 className="text-sm font-semibold text-foreground">Expected format</h2>
         <p className="mt-1 max-w-3xl">
           One row per opportunity, tab-separated, with these {CATALOG_COLUMNS.length} columns in
-          order. Duplicates are detected by{" "}
-          <span className="text-foreground">Title + Organization Name</span> and skipped
-          automatically, so re-importing is safe.
+          order. Duplicates are detected by the source{" "}
+          <span className="text-foreground">ID</span> column (or{" "}
+          <span className="text-foreground">Title + Organization Name</span> when there's no ID)
+          and skipped automatically, so re-importing the dataset is safe.
         </p>
         <div className="mt-3 flex flex-wrap gap-1.5">
           {CATALOG_COLUMNS.map((c) => (
