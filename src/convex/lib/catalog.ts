@@ -406,7 +406,12 @@ export function rowToOpportunity(
     provider,
     // Prefer the deep Apply Link (carries location & program params); the
     // "Apply now" button on the detail page links to officialUrl.
-    officialUrl: p[7] || p[8] || `https://antren.app/program/${opts.index}`,
+    // Never fabricate a fake domain when a row has no links — point at a
+    // live search for the program instead.
+    officialUrl:
+      p[7] ||
+      p[8] ||
+      `https://www.google.com/search?q=${encodeURIComponent(`${title} ${provider}`)}`,
     category: "volunteering",
     subFields: [],
     location,

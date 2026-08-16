@@ -48,6 +48,14 @@ type SeedOpp = {
 
 const G = (days: number) => days; // readability helper for deadline offsets
 
+// Honest fallback for programs without an official URL: never fabricate a
+// fake domain — point students at search results for the real program.
+function searchLink(program: string, org?: string) {
+  return `https://www.google.com/search?q=${encodeURIComponent(
+    [program, org].filter(Boolean).join(" "),
+  )}`;
+}
+
 const S: SeedOpp[] = [
   // ────────────────────────────── COMPUTER SCIENCE ──────────────────────────────
   {
@@ -378,7 +386,6 @@ const S: SeedOpp[] = [
     desc: "Nullify's apprenticeship places early-career engineers on real product teams working on AI security tooling. You'll own features end-to-end, pair with senior engineers, and convert to full-time at the end of the program based on performance.",
     docs: ["Resume", "Coding assessment", "Portfolio"],
     method: "Online application + technical interview",
-    url: "https://antren.app/program/nullify-ai-apprenticeship",
   },
   {
     title: "Buildspace Nights & Weekends",
@@ -834,7 +841,6 @@ const S: SeedOpp[] = [
     desc: "Blue Ocean invites student-founded startups to pitch for cash prizes and investor meetings. Finalists get coaching from VCs and incubator staff before the live pitch day.",
     docs: ["Application", "Pitch deck"],
     method: "Online application",
-    url: "https://antren.app/program/blue-ocean-competition",
   },
   {
     title: "HSF Scholars Program",
@@ -1137,7 +1143,6 @@ const S: SeedOpp[] = [
     desc: "The Clean Energy Corps trains student organizers to run local climate campaigns, school board presentations, and campus sustainability projects — with weekly mentorship and skill-building workshops.",
     docs: ["Application form"],
     method: "Online application",
-    url: "https://antren.app/program/clean-energy-corps",
   },
   {
     title: "A Million Teachers of Color Fellowship",

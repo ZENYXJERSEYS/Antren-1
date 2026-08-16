@@ -115,6 +115,24 @@ function labelFor(category: string): string {
   return map[category] ?? category;
 }
 
+/**
+ * Placeholder links to the non-existent antren.app domain are never served.
+ * Any row still carrying one (legacy seed rows that predate the purge)
+ * resolves to a live search for the real program instead.
+ */
+function sanitizeOfficialUrl(opp: {
+  officialUrl: string;
+  title: string;
+  provider: string;
+}): string {
+  if (opp.officialUrl && !opp.officialUrl.includes("antren.app")) {
+    return opp.officialUrl;
+  }
+  return `https://www.google.com/search?q=${encodeURIComponent(
+    `${opp.title} ${opp.provider}`,
+  )}`;
+}
+
 export const stats = query({
   args: {},
   handler: async (ctx) => {
@@ -151,7 +169,8 @@ export const featured = query({
     return opps
       .filter((o) => o.featured && o.deadline > now)
       .sort((a, b) => b.deadline - a.deadline)
-      .slice(0, limit ?? 6);
+      .slice(0, limit ?? 6)
+      .map((o) => ({ ...o, officialUrl: sanitizeOfficialUrl(o) }));
   },
 });
 
@@ -267,6 +286,7 @@ export const list = query({
     const total = withMatch.length;
     const page = withMatch.slice(offset, offset + limit).map(({ opp, match }) => ({
       ...opp,
+      officialUrl: sanitizeOfficialUrl(opp),
       matchScore: match.score,
       matchReasons: match.reasons,
     }));
@@ -306,6 +326,7 @@ export const get = query({
       : [null, null];
     return {
       ...opp,
+      officialUrl: sanitizeOfficialUrl(opp),
       matchScore: profile ? computeMatch(opp, profile).score : null,
       matchReasons: profile ? computeMatch(opp, profile).reasons : [],
       saved: !!saved,
@@ -331,7 +352,8 @@ export const similar = query({
           (a.subFields.filter((s) => opp.subFields.includes(s)).length);
         return shared || a.deadline - b.deadline;
       })
-      .slice(0, limit ?? 6);
+      .slice(0, limit ?? 6)
+      .map((o) => ({ ...o, officialUrl: sanitizeOfficialUrl(o) }));
   },
 });
 

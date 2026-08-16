@@ -231,6 +231,12 @@ const schema = defineSchema(
       query: v.string(),
       createdAt: v.number(),
     }).index("by_user", ["userId", "createdAt"]),
+
+    /** Tiny key/value store for one-time data migrations and housekeeping. */
+    appFlags: defineTable({
+      key: v.string(),
+      value: v.any(),
+    }).index("by_key", ["key"]),
   },
   {
     schemaValidation: false,
