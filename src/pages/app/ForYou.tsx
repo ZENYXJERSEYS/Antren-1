@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { OpportunityCard, type OpportunityListItem } from "@/components/OpportunityCard";
+import { STREAMS } from "@/convex/lib/streams";
 import { useAuth } from "@/hooks/use-auth";
 import { CATEGORIES, OPPORTUNITY_SORTS } from "@/lib/taxonomy";
 import { cn } from "@/lib/utils";
@@ -24,6 +25,7 @@ export default function ForYou() {
   const [search, setSearch] = useState("");
   const [debounced, setDebounced] = useState("");
   const [category, setCategory] = useState<string | undefined>(undefined);
+  const [stream, setStream] = useState<string | undefined>(undefined);
   const [sort, setSort] = useState("recommended");
   const [offset, setOffset] = useState(0);
   const [items, setItems] = useState<OpportunityListItem[]>([]);
@@ -36,11 +38,12 @@ export default function ForYou() {
   useEffect(() => {
     setOffset(0);
     setItems([]);
-  }, [debounced, category, sort]);
+  }, [debounced, category, stream, sort]);
 
   const page = useQuery(api.opportunities.list, {
     search: debounced || undefined,
     category,
+    stream,
     sort,
     offset,
     limit: 12,
@@ -110,13 +113,41 @@ export default function ForYou() {
       <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
         <button
           type="button"
+          onClick={() => setStream(undefined)}
+          className={cn(
+            "shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors",
+            !stream ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:text-foreground",
+          )}
+        >
+          All streams
+        </button>
+        {STREAMS.map((s) => (
+          <button
+            key={s.slug}
+            type="button"
+            onClick={() => setStream(stream === s.slug ? undefined : s.slug)}
+            className={cn(
+              "shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors",
+              stream === s.slug
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {s.emoji} {s.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+        <button
+          type="button"
           onClick={() => setCategory(undefined)}
           className={cn(
             "shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors",
             !category ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:text-foreground",
           )}
         >
-          All
+          All categories
         </button>
         {CATEGORIES.map((c) => (
           <button

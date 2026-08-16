@@ -1,0 +1,227 @@
+/**
+ * Academic & professional streams — the interest axis students browse by
+ * (Business, Medicine, Economics, Computer Science, …).
+ *
+ * Pure TS (no Convex imports) so both the Convex query layer and the React
+ * frontend share a single definition. Matching is keyword-based over an
+ * opportunity's title, subtitle, provider, category, subFields and tags —
+ * that covers curated rows (rich subFields) as well as imported bulk rows
+ * (tag strings), which all land in a generic category.
+ *
+ * Matching rules: keywords of ≤3 chars must match a whole lowercase token
+ * (avoids "art" matching "startup" or "ui" matching "building"); longer
+ * keywords match as substrings ("math" → "mathematics", "research" →
+ * "research-programs").
+ */
+
+export type Stream = {
+  slug: string;
+  label: string;
+  emoji: string;
+  /** Case-insensitive keywords. Entries of ≤3 chars must match a whole token. */
+  keywords: string[];
+};
+
+export const STREAMS: Stream[] = [
+  {
+    slug: "business",
+    label: "Business & Economics",
+    emoji: "📊",
+    keywords: [
+      "business", "economics", "economy", "finance", "financial", "marketing",
+      "entrepreneurship", "entrepreneur", "entrepreneurial", "management",
+      "operations", "strategy", "consulting", "investment", "investing",
+      "investor", "venture", "startup", "sales", "accounting", "commerce",
+      "trading", "pitch", "pitching", "deca", "fbla", "banking", "fundraising",
+      "revenue", "profit", "founder", "founding", "accelerator", "incubation",
+      "corporate", "trade", "fintech", "supply chain", "real estate",
+      "case competition", "business plan", "pitch deck", "market analysis",
+      "stock market", "unit economics", "customer discovery", "merchant",
+    ],
+  },
+  {
+    slug: "health",
+    label: "Health & Medicine",
+    emoji: "🩺",
+    keywords: [
+      "medical", "medicine", "health", "clinical", "pre-med", "premed", "nursing",
+      "dental", "dentistry", "pharmacy", "epidemiolog", "healthcare", "hospital",
+      "physician", "doctor", "surgery", "biomedical", "immunology", "physiology",
+      "nutrition", "public health", "mental health", "global health",
+      "health outreach", "medical devices", "sports medicine", "med school",
+      "med", "healthtech", "wellness", "patient", "pharma", "medtech",
+      "clinical trials", "healthcare ai", "healthcare policy", "cardi", "neuro",
+      "oncol", "medical research",
+    ],
+  },
+  {
+    slug: "cs",
+    label: "Technology & CS",
+    emoji: "💻",
+    keywords: [
+      "computer", "software", "coding", "code", "programming", "data science",
+      "cybersecurity", "cyber", "cloud", "devops", "blockchain", "machine learning",
+      "artificial intelligence", "web dev", "web development", "mobile dev",
+      "app development", "developer", "algorithms", "open source", "hackathon",
+      "computer vision", "quantum computing", "competitive programming", "tech",
+      "technology", "saas", "software engineering", "software engineer", "web3",
+      "api", "cloud computing", "deep learning", "neural", "generative ai",
+      "information technology", "data structures", "frontend", "backend",
+      "full-stack", "fullstack", "coding camp", "code camp", "ios", "android",
+      "game dev", "game development", "ai",
+    ],
+  },
+  {
+    slug: "engineering",
+    label: "Engineering",
+    emoji: "⚙️",
+    keywords: [
+      "engineering", "mechanical", "electrical", "civil", "aerospace", "chemical",
+      "biomedical", "materials", "industrial", "robotics", "automotive",
+      "structural", "nuclear", "cad", "hardware", "mechatronics", "electronics",
+      "circuit", "machining", "manufacturing", "construction", "thermal",
+      "fluids", "engineer", "fabrication", "prototyping", "3d printing",
+      "machine design", "drafting", "automation", "engineering design",
+    ],
+  },
+  {
+    slug: "math",
+    label: "Math",
+    emoji: "🧮",
+    keywords: [
+      "math", "mathematics", "mathematical", "calculus", "algebra", "statistics",
+      "combinatorics", "number theory", "geometry", "cryptography", "probability",
+      "game theory", "differential equations", "mathematical modeling", "logic",
+      "discrete math", "math olympiad", "math team", "actuarial", "quantitative",
+      "arithmetic", "statistical", "math camp",
+    ],
+  },
+  {
+    slug: "science",
+    label: "Science & Research",
+    emoji: "🔬",
+    keywords: [
+      "science", "research", "biology", "chemistry", "physics", "genetics",
+      "neuroscience", "ecology", "marine", "astronomy", "astrophysics",
+      "laboratory", "lab", "labs", "data analysis", "stem", "nasa", "space",
+      "scientific", "bioinformatics", "zoology", "botany", "biochemistry",
+      "molecular", "cell biology", "evolutionary", "earth science",
+      "environmental science", "scientist", "experiment", "field research",
+      "literature review", "mentored research", "quantum physics",
+      "particle physics", "cosmology", "optics", "thermodynamics",
+      "electromagnetism", "relativity", "genome", "biotech", "science fair",
+      "research program", "scientific research", "data collection",
+      "experimental", "climate science",
+    ],
+  },
+  {
+    slug: "law",
+    label: "Law & Policy",
+    emoji: "⚖️",
+    keywords: [
+      "law", "legal", "policy", "government", "diplomacy", "model un",
+      "human rights", "advocacy", "justice", "politics", "international relations",
+      "legislation", "constitution", "parliament", "civic", "public policy",
+      "government affairs", "international affairs", "mock trial",
+      "national security", "legal studies", "law review", "youth in government",
+      "global governance", "legislative", "diplomat",
+    ],
+  },
+  {
+    slug: "arts",
+    label: "Arts & Design",
+    emoji: "🎨",
+    keywords: [
+      "art", "arts", "design", "graphic design", "product design", "ux/ui",
+      "user experience", "user interface", "illustration", "photography",
+      "animation", "film", "fashion", "architecture", "creative", "visual",
+      "painting", "sculpture", "ceramics", "digital art", "art history",
+      "street art", "concept art", "mixed media", "performance art", "typography",
+      "motion design", "game design", "interior design", "industrial design",
+      "brand", "visual arts", "fine arts", "illustrator", "drawing",
+      "printmaking", "photographer", "portfolio", "design thinking",
+      "filmmaking",
+    ],
+  },
+  {
+    slug: "writing",
+    label: "Writing & Media",
+    emoji: "✍️",
+    keywords: [
+      "writing", "journalism", "creative writing", "poetry", "fiction", "essay",
+      "essays", "editorial", "publishing", "communications", "blogging",
+      "screenwriting", "copywriting", "technical writing", "memoir",
+      "non-fiction", "nonfiction", "short story", "magazine", "media", "content",
+      "storytelling", "author", "editor", "literature", "humanities", "article",
+      "newsletter", "reporting", "journalist", "literary", "essay contest",
+      "writing contest", "communication", "story", "script", "screenplay",
+      "podcast",
+    ],
+  },
+  {
+    slug: "music",
+    label: "Music",
+    emoji: "🎵",
+    keywords: [
+      "music", "composition", "performance", "production", "vocals", "vocal",
+      "instrumental", "songwriting", "orchestra", "band", "choir", "music theory",
+      "electronic", "classical", "jazz", "hip-hop", "dj", "audio", "sound",
+      "recording", "music production", "live performance", "piano", "guitar",
+      "symphony", "concert", "musical", "composer", "singing", "performer",
+    ],
+  },
+  {
+    slug: "social",
+    label: "Social Impact",
+    emoji: "🤝",
+    keywords: [
+      "volunteer", "volunteering", "community", "service", "nonprofit",
+      "non-profit", "environment", "environmental", "climate", "sustainability",
+      "sustainable", "social", "humanitarian", "ngo", "activism", "activist",
+      "outreach", "refugee", "food security", "education equity",
+      "animal welfare", "disaster relief", "housing", "equity", "human rights",
+      "social impact", "social innovation", "service hours", "charity",
+      "philanthropy", "youth development", "community service", "impact",
+      "advocate", "advocacy", "sustainable development", "public service",
+      "community organizing", "civic engagement", "food bank", "mentor",
+      "mentorship", "mentoring", "teaching",
+    ],
+  },
+];
+
+export const STREAM_MAP: Record<string, Stream> = Object.fromEntries(
+  STREAMS.map((s) => [s.slug, s]),
+);
+
+export type StreamMatchable = {
+  title: string;
+  subtitle?: string;
+  provider?: string;
+  category?: string;
+  subFields?: string[];
+  tags?: string[];
+};
+
+/**
+ * True when an opportunity's searchable text (title, subtitle, provider,
+ * category, subFields, tags) matches any keyword of the stream.
+ */
+export function streamMatchesOpp(stream: Stream, opp: StreamMatchable): boolean {
+  const haystack = [
+    opp.title,
+    opp.subtitle,
+    opp.provider,
+    opp.category,
+    ...(opp.subFields ?? []),
+    ...(opp.tags ?? []),
+  ]
+    .filter((s): s is string => typeof s === "string" && s.length > 0)
+    .join(" ")
+    .toLowerCase();
+  const tokens = new Set(haystack.split(/[^a-z0-9]+/).filter((t) => t.length > 0));
+  return stream.keywords.some((raw) => {
+    const kw = raw.toLowerCase();
+    if (kw.length <= 3) return tokens.has(kw);
+    return haystack.includes(kw);
+  });
+}

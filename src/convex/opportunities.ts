@@ -7,6 +7,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getUserId, requireUserId } from "./lib/auth";
+import { STREAM_MAP, streamMatchesOpp } from "./lib/streams";
 
 export type MatchResult = {
   score: number;
@@ -178,6 +179,7 @@ const listArgs = {
   search: v.optional(v.string()),
   category: v.optional(v.string()),
   subField: v.optional(v.string()),
+  stream: v.optional(v.string()),
   country: v.optional(v.string()),
   grade: v.optional(v.string()),
   remote: v.optional(v.boolean()),
@@ -237,6 +239,10 @@ export const list = query({
       if (o.status !== "published") return false;
       if (o.category !== args.category && args.category) return false;
       if (args.subField && !o.subFields.includes(args.subField)) return false;
+      if (args.stream) {
+        const stream = STREAM_MAP[args.stream];
+        if (stream && !streamMatchesOpp(stream, o)) return false;
+      }
       if (args.country && o.country !== args.country) return false;
       if (args.remote !== undefined && o.remote !== args.remote) return false;
       if (args.free !== undefined && o.isFree !== args.free) return false;

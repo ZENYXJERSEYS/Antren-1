@@ -15,7 +15,9 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { OpportunityCard, type OpportunityListItem } from "@/components/OpportunityCard";
+import { STREAMS } from "@/convex/lib/streams";
 import { CATEGORIES, COUNTRIES, GRADES } from "@/lib/taxonomy";
+import { cn } from "@/lib/utils";
 
 const DEADLINES = [
   { value: "any", label: "Any time" },
@@ -29,6 +31,7 @@ export default function Explore() {
   const [search, setSearch] = useState("");
   const [debounced, setDebounced] = useState("");
   const [category, setCategory] = useState<string | undefined>(searchParams.get("category") ?? undefined);
+  const [stream, setStream] = useState<string | undefined>(searchParams.get("stream") ?? undefined);
   const [country, setCountry] = useState<string | undefined>(undefined);
   const [grade, setGrade] = useState<string | undefined>(undefined);
   const [deadline, setDeadline] = useState<string>("any");
@@ -47,11 +50,12 @@ export default function Explore() {
   useEffect(() => {
     setOffset(0);
     setItems([]);
-  }, [debounced, category, country, grade, deadline, remote, free, verifiedOnly]);
+  }, [debounced, category, stream, country, grade, deadline, remote, free, verifiedOnly]);
 
   const page = useQuery(api.opportunities.list, {
     search: debounced || undefined,
     category,
+    stream,
     country,
     grade,
     deadline,
@@ -72,10 +76,11 @@ export default function Explore() {
   }, [page, offset]);
 
   const hasFilters =
-    !!category || !!country || !!grade || deadline !== "any" || remote || free || verifiedOnly;
+    !!category || !!stream || !!country || !!grade || deadline !== "any" || remote || free || verifiedOnly;
 
   const clearAll = () => {
     setCategory(undefined);
+    setStream(undefined);
     setCountry(undefined);
     setGrade(undefined);
     setDeadline("any");
@@ -115,8 +120,48 @@ export default function Explore() {
         </Button>
       </div>
 
+      <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+        <button
+          type="button"
+          onClick={() => setStream(undefined)}
+          className={cn(
+            "shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors",
+            !stream ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:text-foreground",
+          )}
+        >
+          All streams
+        </button>
+        {STREAMS.map((s) => (
+          <button
+            key={s.slug}
+            type="button"
+            onClick={() => setStream(stream === s.slug ? undefined : s.slug)}
+            className={cn(
+              "shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors",
+              stream === s.slug
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {s.emoji} {s.label}
+          </button>
+        ))}
+      </div>
+
       {showFilters && (
         <div className="mt-4 grid gap-4 rounded-2xl border bg-card p-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="flex flex-col gap-2">
+            <Label>Stream</Label>
+            <Select value={stream ?? "all"} onValueChange={(v) => setStream(v === "all" ? undefined : v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent className="max-h-80">
+                <SelectItem value="all">All streams</SelectItem>
+                {STREAMS.map((s) => (
+                  <SelectItem key={s.slug} value={s.slug}>{s.emoji} {s.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="flex flex-col gap-2">
             <Label>Category</Label>
             <Select value={category ?? "all"} onValueChange={(v) => setCategory(v === "all" ? undefined : v)}>
