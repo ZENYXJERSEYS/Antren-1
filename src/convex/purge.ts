@@ -7,6 +7,7 @@
  * sessions skip the scan entirely.
  */
 import { mutation } from "./_generated/server";
+import { v } from "convex/values";
 import { requireAdmin } from "./lib/auth";
 
 const FLAG_KEY = "antren_purged";
@@ -44,5 +45,29 @@ export const purgeFakeOpportunities = mutation({
 
     await ctx.db.insert("appFlags", { key: FLAG_KEY, value: true });
     return { purged: toDelete.length, alreadyDone: false };
+  },
+});
+
+/**
+ * Delete up to `limit` opportunities whose sourceId falls in
+ * [min, max] (lexicographic — sourceIds are zero-padded numeric strings,
+ * so this is an exact numeric range). Used to clean up a double-imported
+ * chunk: run repeatedly until it returns 0, then re-import the chunk once.
+ */
+export const purgeSourceIdRange = mutation({
+  args: {
+    min: v.string(),
+    max: v.string(),
+    limit: v.number(),
+  },
+  handler: async (ctx, { min, max, limit }) => {
+    const batch = await ctx.db
+      .query("opportunities")
+      .withIndex("by_sourceId", (q) => q.gte("sourceId", min).lte("sourceId", max))
+      .take(limit);
+    for (const doc of batch) {
+      await ctx.db.delete(doc._id);
+    }
+    return { deleted: batch.length };
   },
 });
