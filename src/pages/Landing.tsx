@@ -62,11 +62,12 @@ function Nav() {
 
 function Hero() {
   const stats = useQuery(api.opportunities.stats);
+  const plus = stats?.approximate ? "+" : "";
   const items = [
-    { value: stats ? `${stats.opportunities.toLocaleString()}+` : "—", label: "Live opportunities" },
+    { value: stats ? `${stats.opportunities.toLocaleString()}${plus}` : "—", label: "Live opportunities" },
     { value: stats ? `${stats.categories}` : "—", label: "Categories" },
     { value: stats ? `${stats.countries}` : "—", label: "Countries" },
-    { value: stats ? `${stats.verified.toLocaleString()}+` : "—", label: "Verified by our team" },
+    { value: stats ? `${stats.verified.toLocaleString()}${plus}` : "—", label: "Verified by our team" },
   ];
   return (
     <section className="relative overflow-hidden pt-32 pb-20 sm:pt-40 sm:pb-28">

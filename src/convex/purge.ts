@@ -54,6 +54,44 @@ export const purgeFakeOpportunities = mutation({
  * so this is an exact numeric range). Used to clean up a double-imported
  * chunk: run repeatedly until it returns 0, then re-import the chunk once.
  */
+/**
+ * Remove duplicate rows within a sourceId range. The by_sourceId index
+ * orders rows by sourceId, so duplicates are adjacent — a single ascending
+ * scan deletes every occurrence after the first. Call repeatedly with
+ * `min` = the returned `last` cursor until `scanned < limit` (range
+ * exhausted). Bounded reads (~limit docs per call) keep each invocation
+ * well under the 16MB function limit even at 200k+ rows.
+ */
+export const dedupeBySourceId = mutation({
+  args: {
+    min: v.string(),
+    max: v.string(),
+    limit: v.number(),
+  },
+  handler: async (ctx, { min, max, limit }) => {
+    await requireAdmin(ctx);
+    const cap = Math.min(limit, 5000);
+    const batch = await ctx.db
+      .query("opportunities")
+      .withIndex("by_sourceId", (q) => q.gte("sourceId", min).lte("sourceId", max))
+      .take(cap);
+    const seen = new Set<string>();
+    let deleted = 0;
+    let last = min;
+    for (const doc of batch) {
+      if (!doc.sourceId) continue;
+      last = doc.sourceId;
+      if (seen.has(doc.sourceId)) {
+        await ctx.db.delete(doc._id);
+        deleted++;
+      } else {
+        seen.add(doc.sourceId);
+      }
+    }
+    return { scanned: batch.length, deleted, last };
+  },
+});
+
 export const purgeSourceIdRange = mutation({
   args: {
     min: v.string(),

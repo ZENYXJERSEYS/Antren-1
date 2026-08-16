@@ -137,21 +137,35 @@ function sanitizeOfficialUrl(opp: {
 export const stats = query({
   args: {},
   handler: async (ctx) => {
-    // Sample the first 50k published rows instead of collecting the whole
-    // catalog — with 87k–200k records a full collect would blow the query
-    // time limit on every landing page load. Counts are marked approximate
-    // when the sample hits the cap (UI renders them with a "+").
-    const [opps, profiles, users] = await Promise.all([
-      ctx.db.query("opportunities").withIndex("by_status", (q) => q.eq("status", "published")).take(50000),
+    // Distinct category/country sets and the verified share come from a
+    // bounded sample (collecting 200k+ full documents would blow the 16MB
+    // read limit); those counts are marked approximate. The headline total
+    // uses the index-only count() primitive, which is cheap at any size.
+    // The installed SDK types don't expose count() yet, hence the cast;
+    // it falls back to the sample size on backends without support.
+    const sample = await ctx.db
+      .query("opportunities")
+      .withIndex("by_status", (q) => q.eq("status", "published"))
+      .take(6000);
+    let total = sample.length;
+    try {
+      const raw = ctx.db.query("opportunities") as unknown as {
+        count: () => Promise<number>;
+      };
+      total = await raw.count();
+    } catch {
+      // older backend — sample size is close enough for a headline
+    }
+    const [profiles, users] = await Promise.all([
       ctx.db.query("profiles").take(10000),
       ctx.db.query("users").take(10000),
     ]);
-    const approximate = opps.length >= 50000;
+    const approximate = sample.length >= 6000;
     return {
-      opportunities: opps.length,
-      verified: opps.filter((o) => o.verificationStatus === "verified" || o.verificationStatus === "recently_verified").length,
-      categories: new Set(opps.map((o) => o.category)).size,
-      countries: new Set(opps.map((o) => o.country)).size,
+      opportunities: total,
+      verified: sample.filter((o) => o.verificationStatus === "verified" || o.verificationStatus === "recently_verified").length,
+      categories: new Set(sample.map((o) => o.category)).size,
+      countries: new Set(sample.map((o) => o.country)).size,
       users: profiles.length,
       approximate,
       isSampleData: true,
@@ -211,6 +225,21 @@ export const list = query({
         )
         .take(400);
       rows = results;
+    } else if (args.stream && !args.category && !args.verifiedOnly && !args.country) {
+      // Streams are keyword-based, so drive them through the search index
+      // (multi-term queries are OR-matched). A plain by_status sample would
+      // only ever cover the first ~1,000 of 200k+ rows and miss most matches.
+      const stream = STREAM_MAP[args.stream];
+      rows = stream
+        ? await ctx.db
+            .query("opportunities")
+            .withSearchIndex("search_opportunities", (q) =>
+              q
+                .search("searchText", stream.keywords.slice(0, 12).join(" "))
+                .eq("status", "published"),
+            )
+            .take(400)
+        : [];
     } else if (args.category) {
       rows = await ctx.db
         .query("opportunities")
