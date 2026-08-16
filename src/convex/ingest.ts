@@ -15,6 +15,7 @@
  */
 import { mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { requireAdmin } from "./lib/auth";
 import { rowToOpportunity, type CatalogOpportunityDoc } from "./lib/catalog";
 
 /** Rows per call — keeps each payload ~350KB, comfortably under the 1MB cap. */
@@ -48,6 +49,9 @@ function planDocs(
 export const ingestBatch = mutation({
   args: { rows: v.array(v.array(v.string())) },
   handler: async (ctx, { rows }) => {
+    // Admin-only: this is the curation pipeline, and arbitrary users must not
+    // be able to inject rows into the public catalog.
+    await requireAdmin(ctx);
     if (rows.length > MAX_BATCH) {
       throw new Error(`Batch too large — send at most ${MAX_BATCH} rows per call`);
     }

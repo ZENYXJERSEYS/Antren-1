@@ -9,6 +9,11 @@ let seeding = false;
  * incremental (they insert only records not already present), so running them
  * on every session is how new catalog rows (e.g. the template-generated
  * 1,500) reach already-populated databases.
+ *
+ * The seed mutations are admin-gated; failures are ignored here so anonymous
+ * visitors and non-admin users don't log unhandled rejections. The first user
+ * to complete onboarding is promoted to admin, which is what actually seeds
+ * the catalog on a fresh deployment.
  */
 export function useSeedData() {
   const stats = useQuery(api.opportunities.stats);
@@ -20,8 +25,10 @@ export function useSeedData() {
     if (!stats || seeding || started.current) return;
     started.current = true;
     seeding = true;
-    void Promise.all([seed(), seedExtra()]).finally(() => {
-      seeding = false;
-    });
+    void Promise.all([seed(), seedExtra()])
+      .catch(() => {})
+      .finally(() => {
+        seeding = false;
+      });
   }, [stats, seed, seedExtra]);
 }

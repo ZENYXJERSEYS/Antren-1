@@ -9,6 +9,7 @@
  * /app/import page — the full 87k–200k dataset plugs into the same pipeline.
  */
 import { mutation } from "./_generated/server";
+import { requireAdmin } from "./lib/auth";
 import { KNOWN_CITIES, rowToOpportunity, slugify, type CatalogOpportunityDoc } from "./lib/catalog";
 
 const ORGS = [
@@ -92,6 +93,7 @@ const GENERATED_ROWS = generateRows();
 export const seedExtra = mutation({
   args: {},
   handler: async (ctx) => {
+    await requireAdmin(ctx);
     const now = Date.now();
 
     // Dedupe against the by_sourceId index instead of scanning the first 5k
