@@ -1,0 +1,1 @@
+import{r}from"./react-vendor-DmakGgst.js";import{a as t,b as a}from"./index-D-y00Qne.js";import{D as s,a as m}from"./theme-D646jeY7.js";function f(){const e=t(a.profiles.getMine);r.useEffect(()=>{const o=e?.theme??s;m(o,e?.accentColor??void 0)},[e?.theme,e?.accentColor])}export{f as u};
