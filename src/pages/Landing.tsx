@@ -64,7 +64,7 @@ function Hero() {
   const items = [
     { value: stats ? `${stats.opportunities.toLocaleString()}${plus}` : "—", label: "Live opportunities" },
     { value: stats ? `${stats.categories}` : "—", label: "Categories" },
-    { value: stats ? `${stats.countries}` : "—", label: "Countries" },
+    { value: stats ? `${stats.countries}${stats.approximate ? "+" : ""}` : "—", label: "Countries" },
     { value: stats ? `${stats.verified.toLocaleString()}${plus}` : "—", label: "Verified by our team" },
   ];
   return (

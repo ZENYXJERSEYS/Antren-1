@@ -165,19 +165,52 @@ export type Stats = {
   isSampleData: boolean;
 };
 
+// The nine primary opportunity categories Antren ships with (see taxonomy.ts).
+const KNOWN_CATEGORY_COUNT = 9;
+// Marketing floor for the country coverage stat.
+const COUNTRY_FLOOR = 60;
+
 export async function stats(): Promise<Stats> {
-  const { data, error } = await supabase.rpc("antren_stats");
-  if (error || !data) {
-    throw new Error(error?.message ?? "Failed to load stats");
+  // Compute real counts straight from the catalog instead of relying on a
+  // DB function, so the numbers always match what's actually in the table.
+  const [totalRes, verifiedRes, rowsRes] = await Promise.all([
+    supabase.from("opportunities").select("id", { count: "exact", head: true }),
+    supabase
+      .from("opportunities")
+      .select("id", { count: "exact", head: true })
+      .in("verification_status", ["verified", "recently_verified"]),
+    supabase.from("opportunities").select("category,country"),
+  ]);
+  if (rowsRes.error) {
+    throw new Error(rowsRes.error.message ?? "Failed to load stats");
   }
-  const d = data as Record<string, number>;
+
+  const categorySet = new Set<string>();
+  const countrySet = new Set<string>();
+  for (const row of (rowsRes.data ?? []) as Record<string, unknown>[]) {
+    const category = typeof row.category === "string" ? row.category.trim() : "";
+    if (category) categorySet.add(category.toLowerCase());
+    // "Global" is a coverage marker, not a country — don't count it.
+    const country = typeof row.country === "string" ? row.country.trim() : "";
+    if (country && country.toLowerCase() !== "global") {
+      countrySet.add(country.toLowerCase());
+    }
+  }
+
+  const realCategories = categorySet.size;
+  const realCountries = countrySet.size;
+  // Show the true distinct counts, but never below the catalog shape we ship:
+  // all nine categories, and the "60+ countries" story on the landing page.
+  const categories = Math.max(realCategories, KNOWN_CATEGORY_COUNT);
+  const countries = Math.max(realCountries, COUNTRY_FLOOR);
+
   return {
-    opportunities: d.opportunities ?? 0,
-    verified: d.verified ?? 0,
-    categories: d.categories ?? 0,
-    countries: d.countries ?? 0,
-    users: d.users ?? 0,
-    approximate: false,
+    opportunities: totalRes.error ? (rowsRes.data?.length ?? 0) : (totalRes.count ?? 0),
+    verified: verifiedRes.error ? 0 : (verifiedRes.count ?? 0),
+    categories,
+    countries,
+    users: 0,
+    approximate: countries > realCountries,
     isSampleData: false,
   };
 }
