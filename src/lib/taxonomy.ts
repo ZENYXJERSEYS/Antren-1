@@ -1,6 +1,6 @@
 /**
  * Antren taxonomy — single source of truth shared by the frontend and the
- * Convex backend. Categories are the primary opportunity types; DOMAINS are
+ * Categories are the primary opportunity types; DOMAINS are
  * the interest sub-fields students pick on their profile.
  */
 

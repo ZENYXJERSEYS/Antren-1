@@ -2,7 +2,7 @@
  * Academic & professional streams — the interest axis students browse by
  * (Business, Medicine, Economics, Computer Science, …).
  *
- * Pure TS so both the (former) Convex query layer and the React frontend
+ * Pure TS so both the data layer and the React frontend
  * share a single definition. Matching is keyword-based over an opportunity's
  * title, subtitle, provider, category, subFields and tags.
  *

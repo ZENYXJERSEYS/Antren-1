@@ -11,7 +11,7 @@ import {
 import { STREAM_MAP, streamMatchesOpp } from "@/lib/streams";
 
 // ---------------------------------------------------------------------------
-// React data hook — mirrors the old Convex `useQuery` shape (undefined = loading)
+// React data hook — returns undefined while loading, then the fetched value
 // ---------------------------------------------------------------------------
 
 export function useDb<T>(
@@ -42,7 +42,7 @@ export function useDb<T>(
 }
 
 // ---------------------------------------------------------------------------
-// Match scoring (ported from the Convex engine — pure)
+// Match scoring (pure)
 // ---------------------------------------------------------------------------
 
 export type MatchResult = { score: number; reasons: string[] };
@@ -258,7 +258,7 @@ export async function listOpportunities(args: ListArgs): Promise<ListPage> {
   const limit = Math.min(args.limit ?? 12, 60);
   const now = Date.now();
 
-  // 1. Candidate set from the most selective filter (mirrors the old index plan).
+  // 1. Candidate set from the most selective filter.
   let rows: Record<string, unknown>[] = [];
   if (args.search && args.search.trim()) {
     let q = supabase
@@ -320,7 +320,7 @@ export async function listOpportunities(args: ListArgs): Promise<ListPage> {
     rows = (data ?? []) as Record<string, unknown>[];
   }
 
-  // 2. Remaining filters (same semantics as the Convex engine).
+  // 2. Remaining filters.
   const includeExpired = args.deadline === "any";
   const filtered = rows
     .map((r) => mapOpportunity(r))

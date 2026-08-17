@@ -29,8 +29,7 @@ export type OpportunityMedia = {
   gradient?: string;
 };
 
-/** The opportunity shape the UI consumes (camelCase + `_id` for compat with the
- *  previous Convex-era pages). */
+/** The opportunity shape the UI consumes (camelCase + `_id`). */
 export type Opportunity = {
   _id: string;
   id: string;
