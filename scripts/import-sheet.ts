@@ -1,18 +1,18 @@
 /**
  * One-off: convert the Google Sheet CSV (already downloaded to /tmp/sheet.csv)
- * into JSONL chunks for `convex import --table opportunities`.
+ * into JSONL chunks that scripts/migrate-supabase.ts upserts into Supabase.
  *
  * Streaming + incremental CSV parsing keeps memory bounded for ~200k rows.
  *
  * The sheet has 16 columns — it inserts Field and Sub-Field before
  * Hear-back Time and has no Tags column. We remap to the 15-column catalog
- * format (Field + Sub-Field folded into Tags) so the existing
- * `rowToOpportunity` in src/convex/lib/catalog.ts builds the documents.
+ * format (Field + Sub-Field folded into Tags) so `rowToOpportunity` in
+ * scripts/catalog.ts builds the documents.
  */
 import { createReadStream, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { rowToOpportunity } from "../src/convex/lib/catalog";
+import { rowToOpportunity } from "./catalog";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = "/tmp/antren-import";

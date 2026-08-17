@@ -1,14 +1,13 @@
 /**
  * Shared catalog utilities for the bulk opportunity dataset.
  *
- * The full dataset (up to ~87k–200k records) is delivered as rows of the
- * 15-column table below (tab-separated). Both paths — the template-generated
- * seed (src/convex/seed-extra.ts) and user-pasted/uploaded files
- * (src/convex/ingest.ts + the /app/import page) — convert rows with
- * `rowToOpportunity`, so imported and generated documents are identical.
+ * The full dataset (up to ~200k records) is delivered as rows of the
+ * 15-column table below (tab-separated). `rowToOpportunity` converts one
+ * row into an opportunity document; scripts/import-sheet.ts turns the raw
+ * Google Sheet export into JSONL chunks that scripts/migrate-supabase.ts
+ * then upserts into Supabase.
  *
- * This module is intentionally pure TS (no Convex imports) so the same code
- * can be reused by tooling later.
+ * Pure TS — no framework imports — so it can run under plain `bun`.
  */
 export const CATALOG_COLUMNS = [
   "ID",

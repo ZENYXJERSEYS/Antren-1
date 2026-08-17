@@ -311,3 +311,16 @@ $$;
 
 revoke all on function public.antren_bump_views(uuid) from public;
 grant execute on function public.antren_bump_views(uuid) to anon, authenticated;
+
+-- ----------------------------------------------------------------------------
+-- Query-path indexes (the exact filters/orderings the app uses)
+-- ----------------------------------------------------------------------------
+create index if not exists opportunities_views_idx on public.opportunities (views);
+create index if not exists saved_user_saved_idx
+  on public.saved_opportunities (user_id, saved_at desc);
+create index if not exists applications_user_updated_idx
+  on public.applications (user_id, updated_at desc);
+create index if not exists connections_from_idx on public.connections (from_user_id);
+create index if not exists connections_to_idx on public.connections (to_user_id);
+create index if not exists messages_connection_idx on public.messages (connection_id, created_at);
+create index if not exists notifications_user_idx on public.notifications (user_id, created_at desc);
