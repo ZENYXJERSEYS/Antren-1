@@ -12,6 +12,8 @@ export function useAuth() {
     loading: true,
   });
   const [profile, setProfile] = useState<Profile | null | undefined>(undefined);
+  // True while the user landed on a password-recovery link from their email.
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -22,8 +24,9 @@ export function useAuth() {
       });
     };
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       if (cancelled) return;
+      setIsPasswordRecovery(event === "PASSWORD_RECOVERY");
       const u = session?.user ?? null;
       setAuthState({
         user: u ? { id: u.id, email: u.email ?? undefined, name: (u.user_metadata?.name as string) ?? undefined } : null,
@@ -75,5 +78,6 @@ export function useAuth() {
     isAuthenticated: !!authState.user,
     user,
     signOut,
+    isPasswordRecovery,
   };
 }

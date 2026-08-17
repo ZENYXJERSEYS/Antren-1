@@ -15,7 +15,86 @@ if (!url || !anonKey) {
   );
 }
 
-export const supabase: SupabaseClient = createClient(url ?? "", anonKey ?? "");
+// ---------------------------------------------------------------------------
+// Session persistence ("Remember me")
+// ---------------------------------------------------------------------------
+
+const REMEMBER_ME_KEY = "antren:remember-me";
+const memoryStore = new Map<string, string>();
+
+// Defaults to the user's last choice, which is stored separately from the
+// session itself so an un-remembered login never resurrects an old session.
+let rememberMe = true;
+try {
+  if (typeof window !== "undefined") {
+    rememberMe = window.localStorage.getItem(REMEMBER_ME_KEY) !== "false";
+  }
+} catch {
+  // ignore
+}
+
+/** Whether sessions should survive browser restarts. */
+export function getSessionPersistence(): boolean {
+  return rememberMe;
+}
+
+/**
+ * Toggle whether sessions survive browser restarts. When "remember me" is
+ * off, session data lives only in memory and is dropped when the tab closes.
+ */
+export function setSessionPersistence(persist: boolean) {
+  rememberMe = persist;
+  try {
+    window.localStorage.setItem(REMEMBER_ME_KEY, persist ? "true" : "false");
+  } catch {
+    // ignore
+  }
+}
+
+/**
+ * Storage adapter that routes auth writes to localStorage when "remember me"
+ * is enabled and to an in-memory store when it isn't. Removing a key always
+ * touches localStorage so sign-out clears stale persisted sessions.
+ */
+const adaptiveStorage: Pick<Storage, "getItem" | "setItem" | "removeItem"> = {
+  getItem(key) {
+    if (rememberMe) {
+      try {
+        return window.localStorage.getItem(key);
+      } catch {
+        return null;
+      }
+    }
+    return memoryStore.get(key) ?? null;
+  },
+  setItem(key, value) {
+    if (rememberMe) {
+      try {
+        window.localStorage.setItem(key, value);
+      } catch {
+        // ignore (private mode, storage full, etc.)
+      }
+    }
+    memoryStore.set(key, value);
+  },
+  removeItem(key) {
+    try {
+      window.localStorage.removeItem(key);
+    } catch {
+      // ignore
+    }
+    memoryStore.delete(key);
+  },
+};
+
+export const supabase: SupabaseClient = createClient(url ?? "", anonKey ?? "", {
+  auth: {
+    storage: adaptiveStorage,
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+  },
+});
 
 // ---------------------------------------------------------------------------
 // Types
