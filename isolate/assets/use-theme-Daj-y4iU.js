@@ -1,1 +1,0 @@
-import{r as t}from"./react-vendor-DmakGgst.js";import{a as r,g as a}from"./index-BSIvp9PA.js";import{D as s,a as m}from"./theme-D646jeY7.js";function p(){const e=r(()=>a(),[]);t.useEffect(()=>{const o=e?.theme??s;m(o,e?.accentColor??void 0)},[e?.theme,e?.accentColor])}export{p as u};
