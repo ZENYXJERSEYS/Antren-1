@@ -93,9 +93,12 @@ async function insertBatch(rows: Record<string, unknown>[], attempt = 0): Promis
 }
 
 async function main() {
+  const chunkFilter = process.env.IMPORT_CHUNK;
   const files = readdirSync(CHUNK_DIR)
     .filter((f) => f.startsWith("chunk-") && f.endsWith(".jsonl"))
+    .filter((f) => !chunkFilter || f.includes(chunkFilter))
     .sort();
+  if (chunkFilter) console.log(`Filtering to chunks containing "${chunkFilter}".`);
   if (files.length === 0) {
     console.error(`No chunks found in ${CHUNK_DIR}`);
     process.exit(1);
