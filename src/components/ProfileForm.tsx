@@ -1,7 +1,5 @@
 import { Loader2, Save } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +22,7 @@ import {
   THEMES,
   type ThemeName,
 } from "@/lib/taxonomy";
+import { upsertProfile } from "@/lib/db";
 import { applyTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -135,7 +134,6 @@ export function ProfileForm({
   completeOnboarding?: boolean;
   onSaved?: () => void;
 }) {
-  const upsert = useMutation(api.profiles.upsert);
   const [draft, setDraft] = useState<ProfileDraft>(initial ?? emptyDraft());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -180,7 +178,7 @@ export function ProfileForm({
     setSaving(true);
     setError(null);
     try {
-      await upsert({
+      await upsertProfile({
         name: draft.name.trim(),
         grade: draft.grade,
         town: draft.town.trim(),

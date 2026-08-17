@@ -2,8 +2,6 @@ import { motion } from "framer-motion";
 import { ArrowRight, Loader2, Search, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -14,14 +12,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { OpportunityCard, type OpportunityListItem } from "@/components/OpportunityCard";
-import { STREAMS } from "@/convex/lib/streams";
+import { STREAMS } from "@/lib/streams";
 import { useAuth } from "@/hooks/use-auth";
+import { getMyProfile, listOpportunities, useDb } from "@/lib/db";
 import { CATEGORIES, OPPORTUNITY_SORTS } from "@/lib/taxonomy";
 import { cn } from "@/lib/utils";
 
 export default function ForYou() {
   const { user } = useAuth();
-  const profile = useQuery(api.profiles.getMine);
+  const profile = useDb(() => getMyProfile(), []);
   const [search, setSearch] = useState("");
   const [debounced, setDebounced] = useState("");
   const [category, setCategory] = useState<string | undefined>(undefined);
@@ -40,14 +39,18 @@ export default function ForYou() {
     setItems([]);
   }, [debounced, category, stream, sort]);
 
-  const page = useQuery(api.opportunities.list, {
-    search: debounced || undefined,
-    category,
-    stream,
-    sort,
-    offset,
-    limit: 12,
-  });
+  const page = useDb(
+    () =>
+      listOpportunities({
+        search: debounced || undefined,
+        category,
+        stream,
+        sort,
+        offset,
+        limit: 12,
+      }),
+    [debounced, category, stream, sort, offset],
+  );
 
   useEffect(() => {
     if (!page) return;

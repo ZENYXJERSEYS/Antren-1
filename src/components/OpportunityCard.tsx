@@ -2,16 +2,14 @@ import { motion, useMotionValue, useReducedMotion, useSpring, useTransform } fro
 import { ArrowRight, BadgeCheck, Bookmark } from "lucide-react";
 import { useRef } from "react";
 import { Link } from "react-router";
-import { useMutation } from "convex/react";
-import type { Id } from "@/convex/_generated/dataModel";
-import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
+import { toggleSave } from "@/lib/db";
 import { CATEGORY_MAP } from "@/lib/taxonomy";
 import { daysUntil, deadlineLabel } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export type OpportunityListItem = {
-  _id: Id<"opportunities">;
+  _id: string;
   _creationTime: number;
   title: string;
   subtitle: string;
@@ -50,7 +48,6 @@ export function OpportunityCard({
   saved?: boolean;
   onSavedChange?: (id: string, saved: boolean) => void;
 }) {
-  const toggleSave = useMutation(api.saves.toggle);
   const reduceMotion = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
 
@@ -152,7 +149,7 @@ export function OpportunityCard({
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  void toggleSave({ opportunityId: opp._id }).then((res) => {
+                  void toggleSave(opp._id).then((res) => {
                     onSavedChange?.(opp._id, res.saved);
                   });
                 }}

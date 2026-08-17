@@ -2,9 +2,7 @@ import '@vly-ai/integrations';
 import { Toaster } from "@/components/ui/sonner";
 import { RequireAuth } from "@/components/RequireAuth";
 import { VlyToolbar } from "../vly-toolbar-readonly.tsx";
-import { ConvexAuthProvider } from "@convex-dev/auth/react";
-import { ConvexReactClient } from "convex/react";
-import React, { StrictMode, useEffect, useMemo, useState, lazy, Suspense } from "react";
+import React, { StrictMode, useEffect, lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router";
 import "./index.css";
@@ -88,65 +86,6 @@ class RootErrorBoundary extends React.Component<
   }
 }
 
-/**
- * The deployment that holds the full opportunity catalog (200k+ records,
- * users, and profiles). The build pipeline sometimes injects a stale or
- * empty deployment URL, and Convex deployments can be paused or disabled,
- * so we probe candidates at startup and use whichever is actually healthy.
- */
-const CATALOG_CONVEX_URL = "https://academic-mockingbird-541.convex.cloud";
-
-/**
- * Probe a deployment's public query API to see if it can serve the app right
- * now. Returns the live opportunity count (0 when unhealthy). Uses the public
- * HTTP endpoint so this works before the Convex client is created.
- */
-async function probeDeployment(url: string): Promise<{ healthy: boolean; count: number }> {
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 6000);
-    const res = await fetch(`${url}/api/query`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Convex-Client": "antren-web-0.0.1" },
-      body: JSON.stringify({ path: "opportunities:stats", format: "json", args: [] }),
-      signal: controller.signal,
-    });
-    clearTimeout(timer);
-    if (!res.ok) return { healthy: false, count: 0 };
-    const data = await res.json();
-    if (data?.status !== "success" || !data.value) return { healthy: false, count: 0 };
-    const count = typeof data.value.opportunities === "number" ? data.value.opportunities : 0;
-    return { healthy: true, count };
-  } catch {
-    return { healthy: false, count: 0 };
-  }
-}
-
-/**
- * Pick the deployment that actually serves data right now. Ties go to the
- * build-configured URL; a deployment with more live opportunities wins, so the
- * app automatically serves the full catalog once its backend is re-enabled.
- */
-async function pickConvexUrl(): Promise<string> {
-  const candidates = [
-    ...new Set(
-      [import.meta.env.VITE_CONVEX_URL, CATALOG_CONVEX_URL].filter(
-        (u): u is string => !!u,
-      ),
-    ),
-  ];
-  let best = candidates[0] ?? CATALOG_CONVEX_URL;
-  let bestCount = -1;
-  for (const url of candidates) {
-    const { healthy, count } = await probeDeployment(url);
-    if (healthy && count > bestCount) {
-      best = url;
-      bestCount = count;
-    }
-  }
-  return best;
-}
-
 function RouteSyncer() {
   const location = useLocation();
   useEffect(() => {
@@ -171,77 +110,54 @@ function RouteSyncer() {
 }
 
 function AntrenApp() {
-  const [convexUrl, setConvexUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    pickConvexUrl().then((url) => {
-      if (!cancelled) setConvexUrl(url);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const convex = useMemo(
-    () => (convexUrl ? new ConvexReactClient(convexUrl) : null),
-    [convexUrl],
-  );
-
-  if (!convex) {
-    return <RouteLoading />;
-  }
-
   return (
     <RootErrorBoundary>
       <ToolbarErrorBoundary>
         <VlyToolbar />
       </ToolbarErrorBoundary>
-      <ConvexAuthProvider client={convex}>
-        <BrowserRouter>
-          <RouteSyncer />
-          <Suspense fallback={<RouteLoading />}>
-            <Routes>
-              <Route path="/" element={<Landing />} />
-              <Route
-                path="/auth"
-                element={<AuthPage redirectAfterAuth="/app/for-you" />}
-              />
-              <Route
-                path="/onboarding"
-                element={
-                  <RequireAuth>
-                    <Onboarding />
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="/dashboard"
-                element={<Navigate to="/app/for-you" replace />}
-              />
-              <Route
-                path="/app"
-                element={
-                  <RequireAuth>
-                    <AppShell />
-                  </RequireAuth>
-                }
-              >
-                <Route index element={<Navigate to="/app/for-you" replace />} />
-                <Route path="for-you" element={<ForYou />} />
-                <Route path="explore" element={<Explore />} />
-                <Route path="saved" element={<Saved />} />
-                <Route path="pipeline" element={<Pipeline />} />
-                <Route path="peers" element={<Peers />} />
-                <Route path="settings" element={<Settings />} />
-                <Route path="opportunity/:id" element={<OpportunityDetail />} />
-              </Route>
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
-        <Toaster />
-      </ConvexAuthProvider>
+      <BrowserRouter>
+        <RouteSyncer />
+        <Suspense fallback={<RouteLoading />}>
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route
+              path="/auth"
+              element={<AuthPage redirectAfterAuth="/app/for-you" />}
+            />
+            <Route
+              path="/onboarding"
+              element={
+                <RequireAuth>
+                  <Onboarding />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/dashboard"
+              element={<Navigate to="/app/for-you" replace />}
+            />
+            <Route
+              path="/app"
+              element={
+                <RequireAuth>
+                  <AppShell />
+                </RequireAuth>
+              }
+            >
+              <Route index element={<Navigate to="/app/for-you" replace />} />
+              <Route path="for-you" element={<ForYou />} />
+              <Route path="explore" element={<Explore />} />
+              <Route path="saved" element={<Saved />} />
+              <Route path="pipeline" element={<Pipeline />} />
+              <Route path="peers" element={<Peers />} />
+              <Route path="settings" element={<Settings />} />
+              <Route path="opportunity/:id" element={<OpportunityDetail />} />
+            </Route>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
+      </BrowserRouter>
+      <Toaster />
     </RootErrorBoundary>
   );
 }

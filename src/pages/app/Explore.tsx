@@ -1,8 +1,6 @@
 import { Loader2, Search, SlidersHorizontal, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,7 +13,8 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { OpportunityCard, type OpportunityListItem } from "@/components/OpportunityCard";
-import { STREAMS } from "@/convex/lib/streams";
+import { STREAMS } from "@/lib/streams";
+import { listOpportunities, useDb } from "@/lib/db";
 import { CATEGORIES, COUNTRIES, GRADES } from "@/lib/taxonomy";
 import { cn } from "@/lib/utils";
 
@@ -52,19 +51,23 @@ export default function Explore() {
     setItems([]);
   }, [debounced, category, stream, country, grade, deadline, remote, free, verifiedOnly]);
 
-  const page = useQuery(api.opportunities.list, {
-    search: debounced || undefined,
-    category,
-    stream,
-    country,
-    grade,
-    deadline,
-    remote: remote || undefined,
-    free: free || undefined,
-    verifiedOnly: verifiedOnly || undefined,
-    offset,
-    limit: 12,
-  });
+  const page = useDb(
+    () =>
+      listOpportunities({
+        search: debounced || undefined,
+        category,
+        stream,
+        country,
+        grade,
+        deadline,
+        remote: remote || undefined,
+        free: free || undefined,
+        verifiedOnly: verifiedOnly || undefined,
+        offset,
+        limit: 12,
+      }),
+    [debounced, category, stream, country, grade, deadline, remote, free, verifiedOnly, offset],
+  );
 
   useEffect(() => {
     if (!page) return;

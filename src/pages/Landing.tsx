@@ -2,14 +2,12 @@ import { motion } from "framer-motion";
 import { ArrowRight, BadgeCheck, CheckCircle2, Globe2, Sparkles, Users } from "lucide-react";
 import { lazy, Suspense } from "react";
 import { Link } from "react-router";
-import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { useAuth } from "@/hooks/use-auth";
-import { useSeedData } from "@/hooks/use-seed";
+import { featured as fetchFeatured, stats as fetchStats, useDb } from "@/lib/db";
 import { CATEGORIES } from "@/lib/taxonomy";
 import { daysUntil, deadlineLabel } from "@/lib/format";
-import { useQuery } from "convex/react";
 
 const HeroScene = lazy(() => import("@/components/HeroScene"));
 
@@ -61,7 +59,7 @@ function Nav() {
 }
 
 function Hero() {
-  const stats = useQuery(api.opportunities.stats);
+  const stats = useDb(() => fetchStats(), []);
   const plus = stats?.approximate ? "+" : "";
   const items = [
     { value: stats ? `${stats.opportunities.toLocaleString()}${plus}` : "—", label: "Live opportunities" },
@@ -191,7 +189,7 @@ function Categories() {
 }
 
 function Featured() {
-  const featured = useQuery(api.opportunities.featured, { limit: 3 });
+  const featured = useDb(() => fetchFeatured(3), []);
   return (
     <section id="featured" className="bg-secondary/40 py-20 sm:py-28">
       <div className="mx-auto max-w-6xl px-5 sm:px-8">
@@ -376,7 +374,6 @@ function Footer() {
 }
 
 export default function Landing() {
-  useSeedData();
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
       <Nav />

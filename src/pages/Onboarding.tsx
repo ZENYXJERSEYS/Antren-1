@@ -1,19 +1,17 @@
 import { ArrowRight, Sparkles } from "lucide-react";
 import { useEffect } from "react";
 import { useNavigate } from "react-router";
-import { useMutation, useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { ProfileForm, draftFromProfile, emptyDraft } from "@/components/ProfileForm";
 import { useAuth } from "@/hooks/use-auth";
 import { useProfileTheme } from "@/hooks/use-theme";
+import { getMyProfile, upsertProfile, useDb } from "@/lib/db";
 
 export default function Onboarding() {
   const { isLoading, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
-  const profile = useQuery(api.profiles.getMine);
-  const upsert = useMutation(api.profiles.upsert);
+  const profile = useDb(() => getMyProfile(), []);
   useProfileTheme();
 
   useEffect(() => {
@@ -30,7 +28,7 @@ export default function Onboarding() {
 
   const handleSkip = async () => {
     // Create a minimal profile so the onboarding gate has somewhere to land.
-    await upsert({
+    await upsertProfile({
       name: user?.name ?? "Student",
       grade: "10",
       town: "",

@@ -1,10 +1,9 @@
 import { Settings as SettingsIcon } from "lucide-react";
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
 import { ProfileForm, draftFromProfile, emptyDraft } from "@/components/ProfileForm";
+import { getMyProfile, useDb } from "@/lib/db";
 
 export default function Settings() {
-  const profile = useQuery(api.profiles.getMine);
+  const profile = useDb(() => getMyProfile(), []);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-8">

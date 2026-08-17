@@ -13,9 +13,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { Link, Navigate, NavLink, Outlet, useNavigate } from "react-router";
-import { useMutation, useQuery } from "convex/react";
 import { timeAgo } from "@/lib/format";
-import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -28,7 +26,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Logo } from "@/components/Logo";
 import { useAuth } from "@/hooks/use-auth";
 import { useProfileTheme } from "@/hooks/use-theme";
-import { useSeedData } from "@/hooks/use-seed";
+import { getMyProfile, listNotifications, markAllNotificationsRead, markNotificationRead, useDb } from "@/lib/db";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -66,7 +64,7 @@ function NavItems({ onNavigate }: { onNavigate?: () => void }) {
 
 function SidebarContent() {
   const { user, signOut } = useAuth();
-  const profile = useQuery(api.profiles.getMine);
+  const profile = useDb(() => getMyProfile(), []);
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -128,9 +126,9 @@ function SidebarContent() {
 }
 
 function NotificationsMenu() {
-  const notifications = useQuery(api.notifications.listMine);
-  const markAllRead = useMutation(api.notifications.markAllRead);
-  const markRead = useMutation(api.notifications.markRead);
+  const [version, setVersion] = useState(0);
+  const notifications = useDb(() => listNotifications(), [version]);
+  const refresh = () => setVersion((v) => v + 1);
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
@@ -153,7 +151,7 @@ function NotificationsMenu() {
             <button
               type="button"
               className="text-xs font-medium text-primary hover:underline"
-              onClick={() => void markAllRead()}
+              onClick={() => void markAllNotificationsRead().then(refresh)}
             >
               Mark all read
             </button>
@@ -174,8 +172,8 @@ function NotificationsMenu() {
               type="button"
               className="flex w-full flex-col gap-0.5 border-b px-3 py-2.5 text-left transition-colors hover:bg-accent"
               onClick={() => {
-                if (!n.read && !n.id.startsWith("deadline-") && !n.id.startsWith("recommendation")) {
-                  void markRead({ id: n.id as never });
+                if (!n.read) {
+                  void markNotificationRead(n.id).then(refresh);
                 }
                 setOpen(false);
                 navigate(n.href);
@@ -217,8 +215,7 @@ function TopBar() {
 
 export function AppShell() {
   useProfileTheme();
-  useSeedData();
-  const profile = useQuery(api.profiles.getMine);
+  const profile = useDb(() => getMyProfile(), []);
 
   // First visit / incomplete setup → straight to profile setup.
   if (profile === null || (profile && !profile.onboardingComplete)) {

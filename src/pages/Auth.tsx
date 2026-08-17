@@ -14,6 +14,7 @@ import {
   InputOTPSlot,
 } from "@/components/ui/input-otp";
 
+import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/use-auth";
 import logo from "@/assets/logo.svg";
 import { ArrowRight, Loader2, Mail } from "lucide-react";
@@ -35,7 +36,7 @@ function resolveRedirectAfterAuth(
 }
 
 function Auth({ redirectAfterAuth }: AuthProps = {}) {
-  const { isLoading: authLoading, isAuthenticated, signIn } = useAuth();
+  const { isLoading: authLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirect = resolveRedirectAfterAuth(
@@ -52,14 +53,20 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
       navigate(redirect);
     }
   }, [authLoading, isAuthenticated, navigate, redirect]);
+
   const handleEmailSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsLoading(true);
     setError(null);
     try {
       const formData = new FormData(event.currentTarget);
-      await signIn("email-otp", formData);
-      setStep({ email: formData.get("email") as string });
+      const email = String(formData.get("email") ?? "");
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: { shouldCreateUser: true },
+      });
+      if (error) throw error;
+      setStep({ email });
       setIsLoading(false);
     } catch (error) {
       console.error("Email sign-in error:", error);
@@ -74,13 +81,16 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
 
   const handleOtpSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (step === "signIn") return;
     setIsLoading(true);
     setError(null);
     try {
-      const formData = new FormData(event.currentTarget);
-      await signIn("email-otp", formData);
-
-      console.log("signed in");
+      const { error } = await supabase.auth.verifyOtp({
+        email: step.email,
+        token: otp,
+        type: "email",
+      });
+      if (error) throw error;
 
       navigate(redirect);
     } catch (error) {
@@ -164,7 +174,6 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
               <form onSubmit={handleOtpSubmit}>
                 <CardContent className="pb-4">
                   <input type="hidden" name="email" value={step.email} />
-                  <input type="hidden" name="code" value={otp} />
 
                   <div className="flex justify-center">
                     <InputOTP
@@ -238,7 +247,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
           )}
 
           <div className="py-4 px-6 text-xs text-center text-muted-foreground bg-muted border-t rounded-b-lg">
-            Opportunities without limits — {" "}
+            Opportunities without limits —{" "}
             <span className="font-medium text-primary">Antren</span>
           </div>
         </Card>

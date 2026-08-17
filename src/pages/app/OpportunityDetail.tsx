@@ -14,8 +14,6 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
-import { useMutation, useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -24,22 +22,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { OpportunityCard } from "@/components/OpportunityCard";
+import { getOpportunity, recordView, setApplicationStatus, similarOpportunities, toggleSave, useDb } from "@/lib/db";
 import { CATEGORY_MAP, PIPELINE_STAGES, REJECTED_STAGE } from "@/lib/taxonomy";
 import { deadlineLabel, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export default function OpportunityDetail() {
   const { id } = useParams<{ id: string }>();
-  const opp = useQuery(api.opportunities.get, { id: id as never });
-  const similar = useQuery(api.opportunities.similar, { id: id as never, limit: 3 });
-  const recordView = useMutation(api.opportunities.recordView);
-  const toggleSave = useMutation(api.saves.toggle);
-  const setStatus = useMutation(api.applications.setStatus);
+  const opp = useDb(() => (id ? getOpportunity(id) : Promise.resolve(null)), [id]);
+  const similar = useDb(() => (id ? similarOpportunities(id, 3) : Promise.resolve([])), [id]);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    if (id) void recordView({ id: id as never });
-  }, [id, recordView]);
+    if (id) void recordView(id);
+  }, [id]);
 
   useEffect(() => {
     setSaved(!!opp?.saved);
@@ -170,7 +166,7 @@ export default function OpportunityDetail() {
                   size="icon"
                   className={cn("size-10 shrink-0", saved && "text-primary")}
                   onClick={() => {
-                    void toggleSave({ opportunityId: opp._id }).then((res) => setSaved(res.saved));
+                    void toggleSave(opp._id).then((res) => setSaved(res.saved));
                   }}
                   aria-label={saved ? "Remove bookmark" : "Bookmark"}
                 >
@@ -192,7 +188,7 @@ export default function OpportunityDetail() {
                       <DropdownMenuItem
                         key={s.value}
                         className={cn("cursor-pointer", s.value === opp.application!.status && "bg-primary/10 text-primary")}
-                        onClick={() => void setStatus({ opportunityId: opp._id, status: s.value as never })}
+                        onClick={() => void setApplicationStatus(opp._id, s.value)}
                       >
                         {s.emoji} {s.label}
                       </DropdownMenuItem>
@@ -203,7 +199,7 @@ export default function OpportunityDetail() {
                 <Button
                   variant="secondary"
                   className="mt-2.5 w-full gap-2"
-                  onClick={() => void setStatus({ opportunityId: opp._id, status: "saved" })}
+                  onClick={() => void setApplicationStatus(opp._id, "saved")}
                 >
                   <Sparkles className="size-4" /> Track in pipeline
                 </Button>

@@ -1,6 +1,5 @@
 import { useEffect } from "react";
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import { getMyProfile, useDb } from "@/lib/db";
 import { applyTheme, DEFAULT_THEME, type ThemeName } from "@/lib/theme";
 
 /**
@@ -8,7 +7,7 @@ import { applyTheme, DEFAULT_THEME, type ThemeName } from "@/lib/theme";
  * Falls back to the light (default) theme while signed out or loading.
  */
 export function useProfileTheme() {
-  const profile = useQuery(api.profiles.getMine);
+  const profile = useDb(() => getMyProfile(), []);
 
   useEffect(() => {
     const theme = (profile?.theme ?? DEFAULT_THEME) as ThemeName;

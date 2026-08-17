@@ -1,9 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { MessageCircle, Search, Send, UserCheck, UserPlus, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { useMutation, useQuery } from "convex/react";
-import type { Id } from "@/convex/_generated/dataModel";
-import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,35 +11,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { listMessages, listPeers, markMessagesRead, myConnections, requestConnection, respondConnection, sendMessage, useDb, type ChatMessage, type Peer, type PeerConnection } from "@/lib/db";
 import { CATEGORIES, COUNTRIES, GRADE_LABEL, GRADES } from "@/lib/taxonomy";
 import { cn } from "@/lib/utils";
 
-type Peer = {
-  profile: {
-    name: string;
-    grade: string;
-    town: string;
-    country: string;
-    bio: string;
-    interests: string[];
-    subFields: string[];
-  };
-  user: { _id: Id<"users">; image?: string };
-  connection: "none" | "pending" | "connected" | "incoming";
-  connectionId: Id<"connections"> | null;
-  matchPct: number;
-};
-
-type Connection = {
-  connectionId: string;
-  peerId: string;
-  name: string;
-  image?: string;
-  grade: string | null;
-  country: string | null;
-  bio: string;
-  interests: string[];
-};
 
 export default function Peers() {
   const [search, setSearch] = useState("");
@@ -50,16 +22,17 @@ export default function Peers() {
   const [interest, setInterest] = useState<string | undefined>(undefined);
   const [country, setCountry] = useState<string | undefined>(undefined);
 
-  const peers = useQuery(api.peers.list, { search: search || undefined, grade, interest, country, limit: 30 });
-  const connections = useQuery(api.peers.myConnections);
-  const requestConnection = useMutation(api.peers.requestConnection);
-  const respondConnection = useMutation(api.peers.respondConnection);
+  const peers = useDb(
+    () => listPeers({ search: search || undefined, grade, interest, country, limit: 30 }),
+    [search, grade, interest, country],
+  );
+  const connections = useDb(() => myConnections(), []);
 
-  const [activeConnection, setActiveConnection] = useState<Connection | null>(null);
+  const [activeConnection, setActiveConnection] = useState<PeerConnection | null>(null);
   const [localPeers, setLocalPeers] = useState<Peer[] | null>(null);
 
   useEffect(() => {
-    if (peers) setLocalPeers(peers as unknown as Peer[]);
+    if (peers) setLocalPeers(peers);
   }, [peers]);
 
   const updatePeer = (userId: string, connection: Peer["connection"]) => {
@@ -162,7 +135,7 @@ export default function Peers() {
                       className="flex-1 gap-1.5"
                       onClick={() => {
                         updatePeer(peer.user._id, "pending");
-                        void requestConnection({ toUserId: peer.user._id });
+                        void requestConnection(peer.user._id);
                       }}
                     >
                       <UserPlus className="size-4" /> Connect
@@ -180,7 +153,7 @@ export default function Peers() {
                         className="flex-1 gap-1.5"
                         onClick={() => {
                           updatePeer(peer.user._id, "connected");
-                          if (peer.connectionId) void respondConnection({ connectionId: peer.connectionId, accept: true });
+                          if (peer.connectionId) void respondConnection(peer.connectionId, true);
                         }}
                       >
                         <UserCheck className="size-4" /> Accept
@@ -272,17 +245,15 @@ export default function Peers() {
   );
 }
 
-function ChatPanel({ connection, onClose }: { connection: Connection; onClose: () => void }) {
-  const messages = useQuery(api.peers.listMessages, { connectionId: connection.connectionId as never });
-  const sendMessage = useMutation(api.peers.sendMessage);
-  const markRead = useMutation(api.peers.markMessagesRead);
+function ChatPanel({ connection, onClose }: { connection: PeerConnection; onClose: () => void }) {
+  const messages = useDb<ChatMessage[]>(() => listMessages(connection.connectionId), [connection.connectionId]);
   const [body, setBody] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
-    void markRead({ connectionId: connection.connectionId as never });
-  }, [messages, connection.connectionId, markRead]);
+    void markMessagesRead(connection.connectionId);
+  }, [messages, connection.connectionId]);
 
   return (
     <div className="flex h-96 flex-col">
@@ -311,7 +282,7 @@ function ChatPanel({ connection, onClose }: { connection: Connection; onClose: (
         onSubmit={(e) => {
           e.preventDefault();
           if (!body.trim()) return;
-          void sendMessage({ connectionId: connection.connectionId as never, body }).then(() => setBody(""));
+          void sendMessage(connection.connectionId, body).then(() => setBody(""));
         }}
       >
         <Input

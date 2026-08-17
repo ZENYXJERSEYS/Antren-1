@@ -1,8 +1,6 @@
 import { ArrowRight, KanbanSquare, MoreHorizontal, Trash2 } from "lucide-react";
 import { Link } from "react-router";
-import { useMutation, useQuery } from "convex/react";
-import type { Id } from "@/convex/_generated/dataModel";
-import { api } from "@/convex/_generated/api";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,31 +9,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { pipeline, removeApplication, setApplicationStatus, useDb, type PipelineItem } from "@/lib/db";
 import { PIPELINE_STAGES, REJECTED_STAGE } from "@/lib/taxonomy";
 import { deadlineLabel } from "@/lib/format";
 
 type StageStatus = "saved" | "researching" | "drafted" | "submitted" | "interview" | "accepted" | "rejected";
 
-type Tracked = {
-  _id: Id<"applications">;
-  opportunityId: Id<"opportunities">;
-  status: StageStatus;
-  notes?: string;
-  updatedAt: number;
-  opportunity: {
-    _id: Id<"opportunities">;
-    title: string;
-    provider: string;
-    deadline: number;
-    rollingDeadline: boolean;
-    media: { emoji?: string; gradient?: string }[];
-  };
-};
+type Tracked = PipelineItem & { status: StageStatus };
 
 export default function Pipeline() {
-  const data = useQuery(api.applications.pipeline);
-  const setStatus = useMutation(api.applications.setStatus);
-  const remove = useMutation(api.applications.remove);
+  const [version, setVersion] = useState(0);
+  const data = useDb(() => pipeline(), [version]);
+  const refresh = () => setVersion((v) => v + 1);
 
   const stages = [...PIPELINE_STAGES, REJECTED_STAGE];
 
@@ -112,7 +97,7 @@ export default function Pipeline() {
                                   key={s.value}
                                   className="cursor-pointer"
                                   onClick={() =>
-                                    void setStatus({ opportunityId: item.opportunityId, status: s.value as StageStatus })
+                                    void setApplicationStatus(item.opportunityId, s.value).then(refresh)
                                   }
                                 >
                                   Move to {s.label.toLowerCase()}
@@ -121,7 +106,7 @@ export default function Pipeline() {
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               className="cursor-pointer text-destructive focus:text-destructive"
-                              onClick={() => void remove({ opportunityId: item.opportunityId })}
+                              onClick={() => void removeApplication(item.opportunityId).then(refresh)}
                             >
                               <Trash2 className="mr-2 size-4" />
                               Remove from pipeline
@@ -139,7 +124,7 @@ export default function Pipeline() {
                             type="button"
                             className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline"
                             onClick={() =>
-                              void setStatus({ opportunityId: item.opportunityId, status: next.value as StageStatus })
+                              void setApplicationStatus(item.opportunityId, next.value).then(refresh)
                             }
                           >
                             {next.label.split(" ")[0]} <ArrowRight className="size-3" />

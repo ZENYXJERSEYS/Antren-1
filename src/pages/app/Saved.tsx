@@ -1,13 +1,12 @@
 import { Bookmark, BookmarkX } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { OpportunityCard, type OpportunityListItem } from "@/components/OpportunityCard";
+import { listSaved, useDb } from "@/lib/db";
 
 export default function Saved() {
-  const saved = useQuery(api.saves.listMine);
+  const saved = useDb(() => listSaved(), []);
   const [removed, setRemoved] = useState<string[]>([]);
 
   return (
