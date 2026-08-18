@@ -8,6 +8,7 @@ import {
   type Opportunity,
   type Profile,
 } from "@/lib/supabase";
+import { getCurrentUser } from "@/lib/local-auth";
 import { STREAM_MAP, streamMatchesOpp } from "@/lib/streams";
 
 // ---------------------------------------------------------------------------
@@ -142,8 +143,8 @@ function sanitizeOfficialUrl(opp: { officialUrl: string; title: string; provider
 // ---------------------------------------------------------------------------
 
 async function currentUserId(): Promise<string | null> {
-  const { data } = await supabase.auth.getUser();
-  return data.user?.id ?? null;
+  const user = getCurrentUser();
+  return user?.id ?? null;
 }
 
 async function getProfile(userId: string): Promise<Profile | null> {
