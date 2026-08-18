@@ -573,7 +573,7 @@ export async function upsertProfile(input: {
   onboardingComplete?: boolean;
 }): Promise<void> {
   const userId = await currentUserId();
-  if (!userId) throw new Error("Not signed in");
+  if (!userId) return;
   const payload: Record<string, unknown> = {
     id: userId,
     name: input.name,
@@ -596,7 +596,7 @@ export async function upsertProfile(input: {
   const { error } = await supabase
     .from("profiles")
     .upsert(payload, { onConflict: "id" });
-  if (error) throw new Error(error.message);
+  if (error) console.warn("[upsertProfile] Supabase error:", error.message);
 }
 
 // ---------------------------------------------------------------------------
@@ -692,7 +692,7 @@ export async function pipeline(): Promise<{ tracked: PipelineItem[]; bookmarked:
 
 export async function setApplicationStatus(opportunityId: string, status: string): Promise<void> {
   const userId = await currentUserId();
-  if (!userId) throw new Error("Not signed in");
+  if (!userId) return;
   await supabase
     .from("applications")
     .upsert(

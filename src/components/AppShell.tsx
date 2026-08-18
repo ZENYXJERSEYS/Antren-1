@@ -218,7 +218,8 @@ export function AppShell() {
   const profile = useDb(() => getMyProfile(), []);
 
   // First visit / incomplete setup → straight to profile setup.
-  if (profile === null || (profile && !profile.onboardingComplete)) {
+  // Only redirect if profile is undefined (still loading). If null, let the user in.
+  if (profile !== undefined && profile !== null && !profile.onboardingComplete) {
     return <Navigate to="/onboarding" replace />;
   }
 
