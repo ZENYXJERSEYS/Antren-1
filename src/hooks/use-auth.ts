@@ -6,36 +6,34 @@ import {
 } from "@/lib/local-auth";
 
 /**
- * Auth hook — always returns authenticated with a user.
- * No loading states, no profile fetching from Supabase.
- * The user requested zero auth blocks in the app.
+ * Auth hook — reads session from localStorage.
+ * Returns isAuthenticated=false when no session exists.
+ * Includes onboardingComplete so components can gate on it.
  */
 export function useAuth() {
-  // Initialize user from localStorage once — sync, no async needed.
   const [user] = useState<AuthUser | null>(() => getCurrentUser());
 
-  const currentUser = user
-    ? {
-        id: user.id,
-        name: user.name || user.email?.split("@")[0] || "Student",
-        email: user.email,
-      }
-    : {
-        id: "anonymous-" + Date.now(),
-        name: "Student",
-        email: "",
-      };
+  const isAuthenticated = !!user;
 
   const signOut = () => {
     localSignOut();
-    // Force page reload to reset state cleanly
     window.location.href = "/auth";
   };
+
+  if (!user) {
+    return {
+      isLoading: false,
+      isAuthenticated: false,
+      user: null,
+      signOut,
+      isPasswordRecovery: false,
+    };
+  }
 
   return {
     isLoading: false,
     isAuthenticated: true,
-    user: { _id: currentUser.id, name: currentUser.name, email: currentUser.email },
+    user: { _id: user.id, name: user.name, email: user.email },
     signOut,
     isPasswordRecovery: false,
   };

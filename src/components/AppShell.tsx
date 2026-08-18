@@ -12,7 +12,7 @@ import {
   Users,
 } from "lucide-react";
 import { useState } from "react";
-import { Link, Navigate, NavLink, Outlet, useNavigate } from "react-router";
+import { Link, NavLink, Outlet, useNavigate } from "react-router";
 import { timeAgo } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import {
@@ -215,13 +215,6 @@ function TopBar() {
 
 export function AppShell() {
   useProfileTheme();
-  const profile = useDb(() => getMyProfile(), []);
-
-  // First visit / incomplete setup → straight to profile setup.
-  // Only redirect if profile is undefined (still loading). If null, let the user in.
-  if (profile !== undefined && profile !== null && !profile.onboardingComplete) {
-    return <Navigate to="/onboarding" replace />;
-  }
 
   return (
     <div className="min-h-screen bg-background text-foreground">

@@ -1,5 +1,4 @@
 import { ArrowRight, Sparkles } from "lucide-react";
-import { useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
@@ -9,25 +8,15 @@ import { useProfileTheme } from "@/hooks/use-theme";
 import { getMyProfile, upsertProfile, useDb } from "@/lib/db";
 
 export default function Onboarding() {
-  const { isLoading, isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const profile = useDb(() => getMyProfile(), []);
   useProfileTheme();
 
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) navigate("/auth?returnTo=/onboarding", { replace: true });
-  }, [isLoading, isAuthenticated, navigate]);
-
-  if (isLoading || !isAuthenticated) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="animate-pulse text-sm text-muted-foreground">Loading…</div>
-      </div>
-    );
-  }
+  // If not authenticated, RequireAuth will redirect to /auth
+  if (!isAuthenticated) return null;
 
   const handleSkip = async () => {
-    // Create a minimal profile so the onboarding gate has somewhere to land.
     await upsertProfile({
       name: user?.name ?? "Student",
       grade: "10",

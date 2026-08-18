@@ -127,7 +127,7 @@ function AntrenApp() {
             <Route
               path="/onboarding"
               element={
-                <RequireAuth>
+                <RequireAuth requireOnboarding={false}>
                   <Onboarding />
                 </RequireAuth>
               }

@@ -2,8 +2,7 @@
  * Simple localStorage-based auth — no Supabase, no email confirmation,
  * no social login. Email + password only.
  *
- * Auto-creates an anonymous session on first visit so the app
- * never blocks the user with "not signed in".
+ * No auto-created sessions. User must sign in or sign up to get a session.
  */
 
 const USERS_KEY = "antren:users";
@@ -76,29 +75,6 @@ function uuid(): string {
 }
 
 // ---------------------------------------------------------------------------
-// Auto-create anonymous user so the app never blocks
-// ---------------------------------------------------------------------------
-
-function ensureDefaultSession() {
-  const session = getSession();
-  if (session) return session;
-
-  // No session exists — create an anonymous one immediately
-  const defaultSession: Session = {
-    userId: uuid(),
-    email: "student@antren.app",
-    name: "Student",
-    rememberMe: true,
-  };
-  saveSession(defaultSession);
-  return defaultSession;
-}
-
-// Run on module load so by the time any component calls getCurrentUser()
-// there is always a valid session.
-ensureDefaultSession();
-
-// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
@@ -110,16 +86,11 @@ export interface AuthUser {
 
 export function getCurrentUser(): AuthUser | null {
   const session = getSession();
-  if (!session) {
-    // Should never happen after ensureDefaultSession, but fallback:
-    const fallback = ensureDefaultSession();
-    return { id: fallback.userId, email: fallback.email, name: fallback.name };
-  }
+  if (!session) return null;
   return { id: session.userId, email: session.email, name: session.name };
 }
 
 export function onAuthChange(callback: (user: AuthUser | null) => void): () => void {
-  // Fire once synchronously, then watch storage events
   callback(getCurrentUser());
 
   const handler = (e: StorageEvent) => {
@@ -200,25 +171,4 @@ export async function signIn(
 
 export function signOut() {
   saveSession(null);
-}
-
-export async function resetPassword(
-  email: string,
-  _newPassword: string,
-): Promise<{ error?: string }> {
-  const trimmed = email.trim().toLowerCase();
-  const users = getUsers();
-  const idx = users.findIndex((u) => u.email === trimmed);
-
-  if (idx === -1) {
-    return {};
-  }
-
-  if (_newPassword.length < 6) {
-    return { error: "Password must be at least 6 characters." };
-  }
-
-  users[idx].passwordHash = await hashPassword(_newPassword);
-  saveUsers(users);
-  return {};
 }

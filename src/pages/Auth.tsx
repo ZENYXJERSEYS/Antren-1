@@ -47,7 +47,7 @@ function friendlyError(message: string): string {
 }
 
 function Auth({ redirectAfterAuth }: AuthProps = {}) {
-  const { isLoading: authLoading, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirect = resolveRedirectAfterAuth(
@@ -64,10 +64,10 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!authLoading && isAuthenticated) {
+    if (isAuthenticated) {
       navigate(redirect);
     }
-  }, [authLoading, isAuthenticated, navigate, redirect]);
+  }, [isAuthenticated, navigate, redirect]);
 
   const switchMode = (next: "signIn" | "signUp") => {
     setMode(next);
@@ -87,6 +87,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
         return;
       }
 
+      // Sign up → go to onboarding
       const result = await signUp(email, password);
       if (result.error) throw new Error(result.error);
       navigate("/onboarding");
