@@ -1,83 +1,72 @@
 import { useEffect, useState } from "react";
-import { supabase, type CurrentUser, type Profile } from "@/lib/supabase";
+import {
+  getCurrentUser,
+  onAuthChange,
+  signOut as localSignOut,
+  type AuthUser,
+} from "@/lib/local-auth";
 import { getMyProfile } from "@/lib/db";
+import type { Profile } from "@/lib/supabase";
 
 /**
- * Supabase-backed auth hook. Keeps the same shape the app's components
- * already consume: { isLoading, isAuthenticated, user, signOut }.
+ * Local auth hook. No Supabase auth — simple localStorage session.
+ * Keeps the same shape the app's components already consume:
+ * { isLoading, isAuthenticated, user, signOut }.
  */
 export function useAuth() {
-  const [authState, setAuthState] = useState<{ user: { id: string; email?: string; name?: string } | null; loading: boolean }>({
-    user: null,
-    loading: true,
-  });
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null | undefined>(undefined);
-  // True while the user landed on a password-recovery link from their email.
-  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
 
-    const refreshProfile = (userId: string) => {
-      getMyProfile().then((p) => {
-        if (!cancelled) setProfile(p);
-      });
-    };
-
-    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+    const unsubscribe = onAuthChange((authUser) => {
       if (cancelled) return;
-      setIsPasswordRecovery(event === "PASSWORD_RECOVERY");
-      const u = session?.user ?? null;
-      setAuthState({
-        user: u ? { id: u.id, email: u.email ?? undefined, name: (u.user_metadata?.name as string) ?? undefined } : null,
-        loading: false,
-      });
-      if (u) refreshProfile(u.id);
-      else setProfile(null);
-    });
+      setUser(authUser);
+      setLoading(false);
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (cancelled) return;
-      const u = data.session?.user ?? null;
-      setAuthState({
-        user: u ? { id: u.id, email: u.email ?? undefined, name: (u.user_metadata?.name as string) ?? undefined } : null,
-        loading: false,
-      });
-      if (u) refreshProfile(u.id);
-      else setProfile(null);
+      if (authUser) {
+        getMyProfile().then((p) => {
+          if (!cancelled) setProfile(p);
+        });
+      } else {
+        setProfile(null);
+      }
     });
 
     return () => {
       cancelled = true;
-      listener.subscription.unsubscribe();
+      unsubscribe();
     };
   }, []);
 
-  const user: CurrentUser | undefined = authState.user
+  const currentUser: AuthUser | undefined = user
     ? {
-        _id: authState.user.id,
+        id: user.id,
         name:
           profile?.name ||
-          authState.user.name ||
-          authState.user.email?.split("@")[0] ||
+          user.name ||
+          user.email?.split("@")[0] ||
           "Student",
-        email: authState.user.email,
-        role: undefined,
+        email: user.email,
       }
     : undefined;
 
   // Loading until the session resolves and (when signed in) the profile loads.
-  const isLoading = authState.loading || (authState.user ? profile === undefined : false);
+  const isLoading = loading || (user ? profile === undefined : false);
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
+  const signOut = () => {
+    localSignOut();
+    setUser(null);
+    setProfile(null);
   };
 
   return {
     isLoading,
-    isAuthenticated: !!authState.user,
-    user,
+    isAuthenticated: !!user,
+    user: currentUser ? { _id: currentUser.id, name: currentUser.name, email: currentUser.email } : undefined,
     signOut,
-    isPasswordRecovery,
+    isPasswordRecovery: false,
   };
 }
