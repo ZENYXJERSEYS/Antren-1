@@ -14,8 +14,9 @@
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { gunzipSync } from "node:zlib";
 
-const CHUNK_DIR = "/tmp/antren-import";
+const CHUNK_DIR = join(__dirname, "../data/opportunities");
 const BATCH = 500;
 const CONCURRENCY = 4;
 
@@ -95,7 +96,7 @@ async function insertBatch(rows: Record<string, unknown>[], attempt = 0): Promis
 async function main() {
   const chunkFilter = process.env.IMPORT_CHUNK;
   const files = readdirSync(CHUNK_DIR)
-    .filter((f) => f.startsWith("chunk-") && f.endsWith(".jsonl"))
+    .filter((f) => f.startsWith("chunk-") && (f.endsWith(".jsonl") || f.endsWith(".jsonl.gz")))
     .filter((f) => !chunkFilter || f.includes(chunkFilter))
     .sort();
   if (chunkFilter) console.log(`Filtering to chunks containing "${chunkFilter}".`);
@@ -122,7 +123,13 @@ async function main() {
   const stats = { batches: 0, rows: 0 };
 
   for (const file of files) {
-    const lines = readFileSync(join(CHUNK_DIR, file), "utf8")
+    let content: string;
+    if (file.endsWith(".gz")) {
+      content = gunzipSync(readFileSync(join(CHUNK_DIR, file))).toString("utf8");
+    } else {
+      content = readFileSync(join(CHUNK_DIR, file), "utf8");
+    }
+    const lines = content
       .split("\n")
       .filter((l) => l.trim());
     console.log(`${file}: ${lines.length} rows`);
